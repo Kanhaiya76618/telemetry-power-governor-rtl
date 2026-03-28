@@ -16,7 +16,7 @@ module pwr_gov_btn_demo_top (
     // btn0 is reset (active high when pressed)
     wire rst_n = ~btn0;
 
-    // Synchronize btn1 before using it as a mode select.
+    // Synchronize btn1 before using it as a display-page select.
     reg [1:0] btn1_sync;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n)
@@ -24,127 +24,52 @@ module pwr_gov_btn_demo_top (
         else
             btn1_sync <= {btn1_sync[0], btn1};
     end
-    wire mode_ext = btn1_sync[1];
+    wire show_diag = btn1_sync[1];
 
-    // Slow phase counter so LED behavior is human-visible.
-    reg [26:0] phase_div;
-    reg [1:0]  phase;
+    // ---------------------------------------------------------------------
+    // Real telemetry source: workload_sim
+    // ---------------------------------------------------------------------
+    // workload_sim advances phases on a 100-cycle window_done pulse.
+    // Generate that pulse here so the workload engine runs on-board.
+    reg [6:0] ws_cycle_count;
+    reg       ws_window_done;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            phase_div <= 27'd0;
-            phase     <= 2'd0;
+            ws_cycle_count <= 7'd0;
+            ws_window_done <= 1'b0;
         end else begin
-            if (phase_div == 27'd99_999_999) begin
-                phase_div <= 27'd0;
-                phase     <= phase + 2'd1;
+            ws_window_done <= 1'b0;
+            if (ws_cycle_count == 7'd99) begin
+                ws_cycle_count <= 7'd0;
+                ws_window_done <= 1'b1;
             end else begin
-                phase_div <= phase_div + 27'd1;
+                ws_cycle_count <= ws_cycle_count + 7'd1;
             end
         end
     end
 
-    // Stimulus wires into the real top-level governor.
-    reg        act_a;
-    reg        stall_a;
-    reg [1:0]  req_a;
-    reg [6:0]  temp_a;
+    wire       act_a;
+    wire       stall_a;
+    wire       act_b;
+    wire       stall_b;
+    wire [6:0] temp_a;
+    wire [6:0] temp_b;
+    wire [2:0] ws_phase;
+    wire       ws_phase_done;
 
-    reg        act_b;
-    reg        stall_b;
-    reg [1:0]  req_b;
-    reg [6:0]  temp_b;
-
-    reg [2:0]  ext_budget_in;
-    reg        use_ext_budget;
-
-    always @(*) begin
-        // Safe defaults
-        act_a         = 1'b0;
-        stall_a       = 1'b0;
-        req_a         = 2'b00;
-        temp_a        = 7'd30;
-
-        act_b         = 1'b0;
-        stall_b       = 1'b0;
-        req_b         = 2'b00;
-        temp_b        = 7'd30;
-
-        ext_budget_in = 3'd4;
-        use_ext_budget = mode_ext;
-
-        if (mode_ext) begin
-            // BTN1 = 1: direct external mode patterns
-            case (phase)
-                2'd0: begin
-                    ext_budget_in = 3'd6;
-                    req_a         = 2'b01;
-                    req_b         = 2'b00;
-                    act_a         = 1'b1;
-                end
-                2'd1: begin
-                    ext_budget_in = 3'd6;
-                    req_a         = 2'b11;
-                    req_b         = 2'b01;
-                    act_a         = 1'b1;
-                    act_b         = 1'b1;
-                end
-                2'd2: begin
-                    ext_budget_in = 3'd3;
-                    req_a         = 2'b11;
-                    req_b         = 2'b11;
-                    temp_a        = 7'd35;
-                    temp_b        = 7'd70;
-                    act_a         = 1'b1;
-                    act_b         = 1'b1;
-                end
-                default: begin
-                    ext_budget_in = 3'd2;
-                    req_a         = 2'b10;
-                    req_b         = 2'b11;
-                    temp_a        = 7'd75;
-                    temp_b        = 7'd35;
-                    act_a         = 1'b1;
-                    act_b         = 1'b1;
-                end
-            endcase
-        end else begin
-            // BTN1 = 0: autonomous mode patterns (FSM + feedback active)
-            case (phase)
-                2'd0: begin
-                    act_a   = 1'b0;
-                    act_b   = 1'b0;
-                    stall_a = 1'b0;
-                    stall_b = 1'b0;
-                    temp_a  = 7'd30;
-                    temp_b  = 7'd30;
-                end
-                2'd1: begin
-                    act_a   = 1'b1;
-                    act_b   = 1'b0;
-                    stall_a = 1'b0;
-                    stall_b = 1'b0;
-                    temp_a  = 7'd35;
-                    temp_b  = 7'd35;
-                end
-                2'd2: begin
-                    act_a   = 1'b1;
-                    act_b   = 1'b1;
-                    stall_a = 1'b0;
-                    stall_b = 1'b1;
-                    temp_a  = 7'd45;
-                    temp_b  = 7'd55;
-                end
-                default: begin
-                    act_a   = 1'b1;
-                    act_b   = 1'b1;
-                    stall_a = 1'b1;
-                    stall_b = 1'b1;
-                    temp_a  = 7'd40;
-                    temp_b  = 7'd92;
-                end
-            endcase
-        end
-    end
+    workload_sim WS (
+        .clk(clk),
+        .rst_n(rst_n),
+        .window_done(ws_window_done),
+        .activity_a(act_a),
+        .stall_a(stall_a),
+        .activity_b(act_b),
+        .stall_b(stall_b),
+        .temp_a(temp_a),
+        .temp_b(temp_b),
+        .phase_out(ws_phase),
+        .phase_done(ws_phase_done)
+    );
 
     wire [1:0] grant_a;
     wire [1:0] grant_b;
@@ -155,6 +80,12 @@ module pwr_gov_btn_demo_top (
     wire [9:0] system_efficiency;
     wire       alarm_a;
     wire       alarm_b;
+
+    // Always telemetry-driven (no external request override)
+    wire [1:0] req_a = 2'b00;
+    wire [1:0] req_b = 2'b00;
+    wire [2:0] ext_budget_in = 3'd4;
+    wire       use_ext_budget = 1'b0;
 
     pwr_gov_top DUT (
         .clk(clk),
@@ -181,12 +112,27 @@ module pwr_gov_btn_demo_top (
     );
 
     // RGB LED mapping
-    assign led0_b = grant_a[0];
-    assign led0_g = grant_a[1];
-    assign led0_r = grant_b[0];
+    // BTN1=0: show governor outputs
+    // BTN1=1: show telemetry diagnostics (phase + alarms + window pulse)
+    wire led0_b_ctrl = grant_a[0];
+    wire led0_g_ctrl = grant_a[1];
+    wire led0_r_ctrl = grant_b[0];
+    wire led1_b_ctrl = grant_b[1];
+    wire led1_g_ctrl = clk_en_a;
+    wire led1_r_ctrl = clk_en_b;
 
-    assign led1_b = grant_b[1];
-    assign led1_g = clk_en_a;
-    assign led1_r = clk_en_b;
+    wire led0_b_diag = ws_phase[0];
+    wire led0_g_diag = ws_phase[1];
+    wire led0_r_diag = ws_phase[2];
+    wire led1_b_diag = alarm_a;
+    wire led1_g_diag = alarm_b;
+    wire led1_r_diag = ws_phase_done;
+
+    assign led0_b = show_diag ? led0_b_diag : led0_b_ctrl;
+    assign led0_g = show_diag ? led0_g_diag : led0_g_ctrl;
+    assign led0_r = show_diag ? led0_r_diag : led0_r_ctrl;
+    assign led1_b = show_diag ? led1_b_diag : led1_b_ctrl;
+    assign led1_g = show_diag ? led1_g_diag : led1_g_ctrl;
+    assign led1_r = show_diag ? led1_r_diag : led1_r_ctrl;
 
 endmodule

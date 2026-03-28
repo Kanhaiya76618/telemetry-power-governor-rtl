@@ -28,20 +28,21 @@ If you want board-only demo operation without any jumper wires:
 
 - Set top module to `pwr_gov_btn_demo_top`
 - Add `vivado_final/rtl/pwr_gov_btn_demo_top.v` to Design Sources
+- Add `vivado_final/rtl/workload_sim.v` to Design Sources
 - Use constraints file `vivado_final/constraints/cora_z7_07s_btn_demo.xdc`
 
 Button behavior:
 
 - `btn0`: reset (hold to reset, release to run)
-- `btn1=0`: autonomous mode patterns
-- `btn1=1`: external-control mode patterns
+- `btn1=0`: show governor outputs (`grant_*`, `clk_en_*`)
+- `btn1=1`: show telemetry diagnostics (`phase`, `alarm_*`, `phase_done`)
 
 LED behavior:
 
-- `LD0` shows grant bits (A/B)
-- `LD1` shows grant/clock-enable bits
+- Telemetry source is the real `workload_sim` module (not hardcoded grant patterns)
+- `LD0` / `LD1` pages are selected by `btn1`
 
-The design cycles through four internal workload phases automatically so color changes are visible.
+The design cycles automatically through workload phases inside `workload_sim`.
 
 ## Simulation Files
 
