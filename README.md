@@ -1,96 +1,69 @@
-Telemetry Power Governor RTL — README
-=====================================
+# Telemetry Power Governor RTL
 
-**What is this project?**
+This repository contains a telemetry-driven power governor implemented in Verilog RTL, plus complete board and host integration for live telemetry/control demos.
 
-This repository provides a compact, practical RTL reference implementation of a telemetry-driven power governor for SoC subsystems. The goal is to show how simple digital building blocks — cycle counters, a small finite-state machine (FSM), and a register interface — can be combined to measure workload, predict near-term activity, and make safe, temperature-aware power-state decisions in hardware.
+## What is implemented
 
-Key points:
+### A) Real designed RTL (core governor datapath and policy)
 
-- Purpose: a small, synthesizable-friendly demo that demonstrates hardware power management techniques for hackathon demos, teaching, and quick SoC prototyping.
-- Inputs: per-cycle telemetry (`activity_in`, `stall_in`) and a simulated temperature (`temp_in`).
-- Decision cadence: the design evaluates measured telemetry once per observation window (`window_done`), avoiding per-cycle churn.
-- Policy: a 4-state governor (`SLEEP`, `LOW_POWER`, `ACTIVE`, `TURBO`) with thermal override, hysteresis (dwell), and a lightweight EWMA predictor to pre-scale on ramps.
-- Observability: testbenches produce `dump.vcd` waveforms and a small graphing tool is included to visualize power states, EWMA, and the arbiter grants.
+These are the actual Verilog modules implementing telemetry processing, policy, arbitration, and feedback:
 
-Who this is for:
+- `vivado_final/rtl/counters.v`
+- `vivado_final/rtl/power_fsm.v`
+- `vivado_final/rtl/reg_interface.v`
+- `vivado_final/rtl/power_arbiter.v`
+- `vivado_final/rtl/perf_feedback.v`
+- `vivado_final/rtl/power_logger.v`
+- `vivado_final/rtl/pwr_gov_top.v`
+- `vivado_final/rtl/workload_sim.v`
 
-- Hardware engineers prototyping a PMU policy.
-- Students learning about clock-gating, telemetry-driven governors, and simple predictors.
-- Hackathon teams wanting a verifiable, testbench-driven demo to present.
+### B) Verilog integration/transport wrappers (still real RTL)
 
-Continue with the Quick start below to compile and run the included testbenches and generate waveforms.
+These are also synthesizable Verilog modules, but they serve as wrappers/interfaces around the core governor:
 
-**Quick start (local)**
+- `vivado_final/rtl/pwr_gov_uart_top.v` (PMOD UART demo wrapper)
+- `vivado_final/rtl/uart_tx.v`
+- `vivado_final/rtl/uart_rx.v`
+- `vivado_final/rtl/pwr_gov_axi_lite.v` (PS bridge AXI-lite wrapper)
+- `vivado_final/rtl/pwr_gov_btn_demo_top.v` (no-jumper LED/button demo)
 
-Prerequisites:
-- macOS or Linux
-- Homebrew (mac) or system package manager
-- Icarus Verilog (iverilog) and `vvp` for simulation
-- GTKWave for waveform viewing (optional)
+### C) Software bridge + web app
 
-Install (macOS):
+- `ps_bridge/baremetal/src/main.c` (Vitis standalone PS firmware, no Linux)
+- `ps_bridge/board_uart_bridge.py` (Linux userspace PS bridge)
+- `host_app/server.py` and `host_app/static/*` (backend + frontend dashboard)
 
-```bash
-brew install icarus-verilog gtkwave
-```
+## Recommended run flow (single USB cable, no external wiring)
 
-Run tests:
+This is the recommended end-to-end flow for Cora Z7 when you want data/control through micro-USB only.
 
-```bash
-# counters
-iverilog -g2012 -o tb_counters.vvp tb_counters.v counters.v
-vvp tb_counters.vvp
+1. Build hardware in Vivado using `pwr_gov_axi_lite` in a Zynq block design.
+2. Export XSA and build/run standalone app in Vitis using `ps_bridge/baremetal/src/main.c`.
+3. Run Python backend/frontend from `host_app` on your laptop.
 
-# reg_interface (make sure reg_interface.v is compiled first)
-iverilog -g2012 -o tb_reg_interface.vvp reg_interface.v counters.v tb_reg_interface.v
-vvp tb_reg_interface.vvp
+Detailed instructions are in:
 
-# power_fsm
-iverilog -g2012 -o tb_power_fsm.vvp power_fsm.v reg_interface.v counters.v tb_power_fsm.v
-vvp tb_power_fsm.vvp
+- `vivado_final/README.md`
+- `ps_bridge/baremetal/README.md`
+- `host_app/README.md`
 
-# Arbiter integration (direct windows)
-iverilog -g2012 -o tb_power_arbiter_direct.vvp tb_power_arbiter_direct.v power_arbiter.v power_fsm.v reg_interface.v counters.v
-vvp tb_power_arbiter_direct.vvp
-```
+## Alternative run flow (external USB-UART adapter)
 
-After a run, open the generated waveform `dump.vcd` with GTKWave:
+If you prefer PL UART over PMOD pins:
 
-```bash
-gtkwave dump.vcd
-```
+- Use top `pwr_gov_uart_top`
+- Use constraint `vivado_final/constraints/cora_z7_07s_uart_demo.xdc`
 
-**Files**
+This mode requires external TX/RX/GND wiring to JA pins.
 
-- `counters.v` — 100-cycle window counters and `window_done` pulse.
-- `reg_interface.v` — register interface, `thermal_thresh_in`, `thermal_alarm`, `clk_en` policy.
-- `power_fsm.v` — FSM governor: thermal override, dwell/hysteresis, EWMA predictor, workload classification.
-- `tb_counters.v`, `tb_reg_interface.v`, `tb_power_fsm.v` — testbenches.
-- `REPORT.md` — detailed report (this repo).
+## Protocol
 
-**EDA Playground**
+Binary frame protocol and control command mapping:
 
-- Copy-paste the files into EDA Playground (https://www.edaplayground.com/).
-- Select Icarus Verilog and add compiler flag `-g2012`.
-- Choose the top module (`tb_power_fsm` or other testbench) and run.
-- Use the Waveform tab to view signals interactively.
+- `host_app/docs/protocol_v1.md`
 
-**Design notes**
+## Notes
 
-- The FSM reacts only on the `window_done` pulse to avoid per-cycle churn.
-- The EWMA predictor uses alpha=1/8 implemented as shifts for synthesis friendliness.
-- `DWELL` parameter controls hysteresis — higher values reduce oscillation, increase reaction latency.
-
-**Next steps**
-
-- Implement `power_arbiter` to coordinate multiple subsystems (Level 2).
-- Add configurable `window_len` register.
-- Add logging registers for state transitions and timestamps.
-
-**License**
-
-- Use as you wish for hackathon/demo purposes. No warranty.
-
-**Author**
-- Work performed by repository owner (local modifications and tests) — 28 March 2026.
+- The governor logic is real Verilog RTL from this project.
+- The UART/AXI modules are also real RTL, used as integration wrappers.
+- The micro-USB path on Cora Z7 is PS-side, so single-cable mode uses PS firmware/software bridge.
