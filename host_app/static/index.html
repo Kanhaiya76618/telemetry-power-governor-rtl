@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PwrGov-X Telemetry Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,133 +11,159 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="backdrop"></div>
-  <main class="shell">
-    <header class="topbar">
-      <div>
-        <h1>PwrGov-X Telemetry Console</h1>
-        <p>Live board processing on Cora Z7 · Laptop-hosted UI</p>
+  <div class="ui-root">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="mark">⚡</div>
+        <div class="name">PwrGov-X<br/><span class="sm">Telemetry</span></div>
       </div>
-      <div class="status-wrap">
-        <span id="connDot" class="dot offline"></span>
-        <span id="connText">Disconnected</span>
+      <nav class="nav">
+        <button class="nav-btn active">Dashboard</button>
+        <button class="nav-btn">Telemetry</button>
+        <button class="nav-btn">Controls</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="status">
+          <span id="connDot" class="dot offline"></span>
+          <span id="connText">Disconnected</span>
+        </div>
+        <button id="themeToggle" class="theme-toggle" title="Toggle theme"><span id="themeIcon">🌙</span></button>
       </div>
-    </header>
+    </aside>
 
-    <section class="grid">
-      <article class="card states">
-        <h2>Subsystem States</h2>
-        <div class="state-row">
-          <div class="state-box">
-            <label>Core A</label>
-            <div id="stateA" class="state-pill">SLEEP</div>
-          </div>
-          <div class="state-box">
-            <label>Core B</label>
-            <div id="stateB" class="state-pill">SLEEP</div>
+    <main class="main">
+      <header class="main-header">
+        <div class="title">
+          <h1>PwrGov-X Telemetry Console</h1>
+          <p>Live board processing on Cora Z7 · Laptop-hosted UI</p>
+        </div>
+        <div class="header-actions">
+          <div class="quick-metrics">
+            <div class="mini"><span>Efficiency</span><strong id="eff">0</strong></div>
+            <div class="mini"><span>Budget</span><strong id="budget">0</strong></div>
+            <div class="mini"><span>Headroom</span><strong id="headroom">0</strong></div>
           </div>
         </div>
-        <div class="mini-grid">
-          <div><span>Grant A</span><strong id="grantA">0</strong></div>
-          <div><span>Grant B</span><strong id="grantB">0</strong></div>
-          <div><span>clk_en A</span><strong id="clkEnA">0</strong></div>
-          <div><span>clk_en B</span><strong id="clkEnB">0</strong></div>
+      </header>
+
+      <section class="grid">
+        <div class="left-col">
+          <div class="card big states">
+            <h3>Subsystem States</h3>
+            <div class="state-row">
+              <div class="state-box">
+                <label>Core A</label>
+                <div id="stateA" class="state-pill sleep">SLEEP</div>
+                <div class="badge-row"><span>Grant</span><strong id="grantA">0</strong><span>clk</span><strong id="clkEnA">0</strong></div>
+              </div>
+              <div class="state-box">
+                <label>Core B</label>
+                <div id="stateB" class="state-pill sleep">SLEEP</div>
+                <div class="badge-row"><span>Grant</span><strong id="grantB">0</strong><span>clk</span><strong id="clkEnB">0</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card telemetry">
+            <h3>Telemetry Inputs</h3>
+            <div class="tele-grid">
+              <div><label>Temp A</label><strong id="tempA">0</strong></div>
+              <div><label>Temp B</label><strong id="tempB">0</strong></div>
+              <div><label>Act A</label><strong id="actA">0</strong></div>
+              <div><label>Act B</label><strong id="actB">0</strong></div>
+              <div><label>Stall A</label><strong id="stallA">0</strong></div>
+              <div><label>Stall B</label><strong id="stallB">0</strong></div>
+              <div><label>Req A</label><strong id="reqA">0</strong></div>
+              <div><label>Req B</label><strong id="reqB">0</strong></div>
+              <div><label>Phase</label><strong id="phase">0</strong></div>
+              <div><label>Mode</label><strong id="mode">internal</strong></div>
+            </div>
+          </div>
+
+          <div class="card chart-card">
+            <h3>Live Trends</h3>
+            <canvas id="trendChart"></canvas>
+          </div>
         </div>
-      </article>
 
-      <article class="card metrics">
-        <h2>Power Metrics</h2>
-        <div class="metric"><span>Efficiency</span><strong id="eff">0</strong></div>
-        <div class="metric"><span>Current Budget</span><strong id="budget">0</strong></div>
-        <div class="metric"><span>Headroom</span><strong id="headroom">0</strong></div>
-        <div class="metric"><span>Frame #</span><strong id="frame">0</strong></div>
-        <div class="alarm-row">
-          <div id="alarmA" class="alarm">Alarm A: OFF</div>
-          <div id="alarmB" class="alarm">Alarm B: OFF</div>
-        </div>
-      </article>
-
-      <article class="card telemetry">
-        <h2>Telemetry Inputs</h2>
-        <div class="mini-grid">
-          <div><span>Temp A</span><strong id="tempA">0</strong></div>
-          <div><span>Temp B</span><strong id="tempB">0</strong></div>
-          <div><span>Act A</span><strong id="actA">0</strong></div>
-          <div><span>Act B</span><strong id="actB">0</strong></div>
-          <div><span>Stall A</span><strong id="stallA">0</strong></div>
-          <div><span>Stall B</span><strong id="stallB">0</strong></div>
-          <div><span>Req A</span><strong id="reqA">0</strong></div>
-          <div><span>Req B</span><strong id="reqB">0</strong></div>
-          <div><span>Phase</span><strong id="phase">0</strong></div>
-          <div><span>Mode</span><strong id="mode">internal</strong></div>
-        </div>
-      </article>
-
-      <article class="card chart-card">
-        <h2>Live Trends</h2>
-        <canvas id="trendChart"></canvas>
-      </article>
-
-      <article class="card controls">
-        <h2>Control Panel</h2>
-        <form id="ctrlForm">
-          <div class="row">
-            <label>Mode</label>
-            <select id="modeSelect">
-              <option value="internal">Internal workload_sim</option>
-              <option value="host">Host-injected telemetry</option>
-            </select>
-          </div>
-
-          <div class="row split">
-            <div>
-              <label>Budget (0-7)</label>
-              <input id="budgetInput" type="number" min="0" max="7" value="4" />
+        <aside class="right-col">
+          <div class="card metrics-card">
+            <h3>Power Metrics</h3>
+            <div class="metric-list">
+              <div class="metric-item"><span>Efficiency</span><strong id="eff2">0</strong></div>
+              <div class="metric-item"><span>Current Budget</span><strong id="budget2">0</strong></div>
+              <div class="metric-item"><span>Headroom</span><strong id="headroom2">0</strong></div>
+              <div class="metric-item"><span>Frame</span><strong id="frame">0</strong></div>
             </div>
-            <div>
-              <label>Use Ext Budget</label>
-              <select id="extBudgetSelect">
-                <option value="false">false</option>
-                <option value="true">true</option>
-              </select>
+            <div class="alarm-row">
+              <div id="alarmA" class="alarm">Alarm A: OFF</div>
+              <div id="alarmB" class="alarm">Alarm B: OFF</div>
             </div>
           </div>
 
-          <div class="row split">
-            <div>
-              <label>Req A (0-3)</label>
-              <input id="reqAInput" type="number" min="0" max="3" value="0" />
-            </div>
-            <div>
-              <label>Req B (0-3)</label>
-              <input id="reqBInput" type="number" min="0" max="3" value="0" />
-            </div>
-          </div>
+          <div class="card controls-card">
+            <h3>Control Panel</h3>
+            <form id="ctrlForm">
+              <div class="row">
+                <label>Mode</label>
+                <select id="modeSelect">
+                  <option value="internal">Internal workload_sim</option>
+                  <option value="host">Host-injected telemetry</option>
+                </select>
+              </div>
 
-          <div class="row split">
-            <div>
-              <label>Temp A (0-127)</label>
-              <input id="tempAInput" type="number" min="0" max="127" value="30" />
-            </div>
-            <div>
-              <label>Temp B (0-127)</label>
-              <input id="tempBInput" type="number" min="0" max="127" value="30" />
-            </div>
-          </div>
+              <div class="row split">
+                <div>
+                  <label>Budget (0-7)</label>
+                  <input id="budgetInput" type="number" min="0" max="7" value="4" />
+                </div>
+                <div>
+                  <label>Use Ext Budget</label>
+                  <select id="extBudgetSelect">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                  </select>
+                </div>
+              </div>
 
-          <div class="toggle-grid">
-            <label><input id="actAToggle" type="checkbox" /> act_a</label>
-            <label><input id="stallAToggle" type="checkbox" /> stall_a</label>
-            <label><input id="actBToggle" type="checkbox" /> act_b</label>
-            <label><input id="stallBToggle" type="checkbox" /> stall_b</label>
-          </div>
+              <div class="row split">
+                <div>
+                  <label>Req A (0-3)</label>
+                  <input id="reqAInput" type="number" min="0" max="3" value="0" />
+                </div>
+                <div>
+                  <label>Req B (0-3)</label>
+                  <input id="reqBInput" type="number" min="0" max="3" value="0" />
+                </div>
+              </div>
 
-          <button type="submit">Send Control Command</button>
-        </form>
-        <pre id="ack" class="ack">Waiting for command...</pre>
-      </article>
-    </section>
-  </main>
+              <div class="row split">
+                <div>
+                  <label>Temp A (0-127)</label>
+                  <input id="tempAInput" type="number" min="0" max="127" value="30" />
+                </div>
+                <div>
+                  <label>Temp B (0-127)</label>
+                  <input id="tempBInput" type="number" min="0" max="127" value="30" />
+                </div>
+              </div>
+
+              <div class="toggle-grid">
+                <label><input id="actAToggle" type="checkbox" /> act_a</label>
+                <label><input id="stallAToggle" type="checkbox" /> stall_a</label>
+                <label><input id="actBToggle" type="checkbox" /> act_b</label>
+                <label><input id="stallBToggle" type="checkbox" /> stall_b</label>
+              </div>
+
+              <button type="submit">Send Control Command</button>
+            </form>
+            <pre id="ack" class="ack">Waiting for command...</pre>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
 
   <script src="/static/app.js"></script>
 </body>

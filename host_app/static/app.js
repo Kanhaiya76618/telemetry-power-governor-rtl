@@ -1,6 +1,8 @@
 const connDot = document.getElementById('connDot');
 const connText = document.getElementById('connText');
 const ack = document.getElementById('ack');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
 
 const fields = {
   stateA: document.getElementById('stateA'),
@@ -25,6 +27,9 @@ const fields = {
   mode: document.getElementById('mode'),
   alarmA: document.getElementById('alarmA'),
   alarmB: document.getElementById('alarmB'),
+  eff2: document.getElementById('eff2'),
+  budget2: document.getElementById('budget2'),
+  headroom2: document.getElementById('headroom2'),
 };
 
 const stateNames = ['SLEEP', 'LOW_POWER', 'ACTIVE', 'TURBO'];
@@ -36,6 +41,8 @@ function decodeState(v) {
 function stateFromGrant(grant) {
   return decodeState(grant);
 }
+
+const stateClassMap = { SLEEP: 'sleep', LOW_POWER: 'low', ACTIVE: 'active', TURBO: 'turbo' };
 
 const chartCtx = document.getElementById('trendChart');
 const trendChart = new Chart(chartCtx, {
@@ -62,6 +69,32 @@ const trendChart = new Chart(chartCtx, {
   }
 });
 
+// apply simple gradient fills for a more modern look
+try {
+  const ctx = chartCtx.getContext('2d');
+  const g0 = ctx.createLinearGradient(0, 0, 0, 300);
+  g0.addColorStop(0, 'rgba(0,201,167,0.26)');
+  g0.addColorStop(1, 'rgba(0,201,167,0.02)');
+  const g1 = ctx.createLinearGradient(0, 0, 0, 300);
+  g1.addColorStop(0, 'rgba(255,169,77,0.20)');
+  g1.addColorStop(1, 'rgba(255,169,77,0.02)');
+  const g2 = ctx.createLinearGradient(0, 0, 0, 300);
+  g2.addColorStop(0, 'rgba(255,111,97,0.18)');
+  g2.addColorStop(1, 'rgba(255,111,97,0.02)');
+  trendChart.data.datasets[0].backgroundColor = g0;
+  trendChart.data.datasets[0].borderWidth = 2;
+  trendChart.data.datasets[0].fill = true;
+  trendChart.data.datasets[1].backgroundColor = g1;
+  trendChart.data.datasets[1].borderWidth = 2;
+  trendChart.data.datasets[1].fill = true;
+  trendChart.data.datasets[2].backgroundColor = g2;
+  trendChart.data.datasets[2].borderWidth = 2;
+  trendChart.data.datasets[2].fill = true;
+  trendChart.update();
+} catch (e) {
+  // ignore if gradients fail
+}
+
 function pushPoint(state) {
   const t = new Date().toLocaleTimeString();
   const labels = trendChart.data.labels;
@@ -69,7 +102,7 @@ function pushPoint(state) {
   trendChart.data.datasets[0].data.push(state.efficiency || 0);
   trendChart.data.datasets[1].data.push(state.temp_a || 0);
   trendChart.data.datasets[2].data.push(state.temp_b || 0);
-  while (labels.length > 40) {
+  while (labels.length > 60) {
     labels.shift();
     trendChart.data.datasets.forEach(ds => ds.data.shift());
   }
@@ -93,6 +126,16 @@ function render(state) {
   fields.stateA.textContent = stateFromGrant(state.grant_a || 0);
   fields.stateB.textContent = stateFromGrant(state.grant_b || 0);
 
+  // add nice class to the pill to visually show state
+  try {
+    const sA = fields.stateA.textContent || 'SLEEP';
+    const sB = fields.stateB.textContent || 'SLEEP';
+    Object.values(stateClassMap).forEach(c => fields.stateA.classList.remove(c));
+    Object.values(stateClassMap).forEach(c => fields.stateB.classList.remove(c));
+    fields.stateA.classList.add(stateClassMap[sA] || 'sleep');
+    fields.stateB.classList.add(stateClassMap[sB] || 'sleep');
+  } catch (e) {}
+
   fields.grantA.textContent = state.grant_a ?? 0;
   fields.grantB.textContent = state.grant_b ?? 0;
   fields.clkEnA.textContent = state.clk_en_a ?? 0;
@@ -101,6 +144,10 @@ function render(state) {
   fields.eff.textContent = state.efficiency ?? 0;
   fields.budget.textContent = state.current_budget ?? 0;
   fields.headroom.textContent = state.budget_headroom ?? 0;
+  // mirror metrics into right column
+  if (fields.eff2) fields.eff2.textContent = state.efficiency ?? 0;
+  if (fields.budget2) fields.budget2.textContent = state.current_budget ?? 0;
+  if (fields.headroom2) fields.headroom2.textContent = state.budget_headroom ?? 0;
   fields.frame.textContent = state.frame_counter ?? 0;
 
   fields.tempA.textContent = state.temp_a ?? 0;
@@ -118,6 +165,66 @@ function render(state) {
   updateAlarm(fields.alarmB, state.alarm_b, 'Alarm B');
 
   pushPoint(state);
+
+  // small highlight animation for metrics
+  try {
+    const els = [fields.eff, fields.budget, fields.headroom];
+    els.forEach(el => { if (!el) return; el.animate([{ transform: 'translateY(-6px)' }, { transform: 'translateY(0)' }], { duration: 260, easing: 'cubic-bezier(.2,.9,.2,1)' }); });
+  } catch (e) {}
+}
+
+/* THEME HANDLING */
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('pwrgov-theme', t); } catch (e) {}
+  if (themeIcon) themeIcon.textContent = t === 'light' ? '☀️' : '🌙';
+}
+
+// initialize theme from localStorage or system
+try {
+  const saved = localStorage.getItem('pwrgov-theme');
+  const preferLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  applyTheme(saved || (preferLight ? 'light' : 'dark'));
+} catch (e) { applyTheme('dark'); }
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    applyTheme(cur);
+  });
+}
+
+/* 3D tilt for cards */
+function initTilt() {
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    let raf = null;
+    let last = null;
+
+    function onFrame() {
+      if (!last) { raf = null; return; }
+      const e = last; last = null; raf = null;
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const px = (x / rect.width) - 0.5;
+      const py = (y / rect.height) - 0.5;
+      const rotY = (px * 18).toFixed(2);
+      const rotX = (-py * 10).toFixed(2);
+      const s = 1.02;
+      card.style.transform = `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(${s})`;
+      card.style.boxShadow = `${-rotY/2}px ${rotX/2}px 34px rgba(6,20,26,0.48), 0 12px 40px rgba(2,6,10,0.35)`;
+    }
+
+    card.addEventListener('pointermove', (ev) => { last = ev; if (!raf) raf = requestAnimationFrame(onFrame); }, { passive: true });
+    card.addEventListener('pointerleave', () => { if (raf) { cancelAnimationFrame(raf); raf = null; } card.style.transform = ''; card.style.boxShadow = ''; });
+  });
+}
+
+// small staggered entrance
+function entranceAnimate() {
+  const cards = Array.from(document.querySelectorAll('.card'));
+  cards.forEach((c, i) => { c.style.opacity = 0; c.style.transform += ' translateY(8px)'; setTimeout(()=>{ c.style.transition = 'opacity .45s ease, transform .55s cubic-bezier(.2,.9,.2,1)'; c.style.opacity = 1; c.style.transform = c.style.transform.replace(' translateY(8px)',''); }, 60 * i); });
 }
 
 let ws;
@@ -127,14 +234,12 @@ function connectWs() {
 
   ws.onopen = () => {
     setConnection(true);
-    ws.send('hello');
   };
 
   ws.onmessage = (ev) => {
     try {
       const state = JSON.parse(ev.data);
       render(state);
-      ws.send('tick');
     } catch (e) {
       console.error(e);
     }
@@ -151,6 +256,7 @@ async function pollFallback() {
     const res = await fetch('/api/state');
     if (res.ok) {
       const state = await res.json();
+      setConnection(true);
       render(state);
     }
   } catch (_e) {
@@ -167,6 +273,8 @@ setInterval(() => {
 const form = document.getElementById('ctrlForm');
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending...'; }
   const payload = {
     mode: document.getElementById('modeSelect').value,
     host_use_ext_budget: document.getElementById('extBudgetSelect').value === 'true',
@@ -192,7 +300,10 @@ form.addEventListener('submit', async (e) => {
   } catch (err) {
     ack.textContent = `control send failed: ${err}`;
   }
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Control Command'; }
 });
 
 connectWs();
 pollFallback();
+initTilt();
+entranceAnimate();
