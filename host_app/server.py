@@ -1,10 +1,13 @@
 import asyncio
+import contextlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import threading
 import time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -19,6 +22,14 @@ from pydantic import BaseModel, Field
 
 UART_BAUD = int(os.getenv("PWRGOV_BAUD", "115200"))
 UART_PORT = os.getenv("PWRGOV_PORT", "").strip()
+API_HOST = os.getenv("PWRGOV_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("PWRGOV_API_PORT", "8000"))
+AUTOKILL_PORT = os.getenv("PWRGOV_AUTOKILL_PORT", "1").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
 FRAME_LEN = 16
 FRAME_HEADER = bytes([0xAA, 0x55])
 
@@ -113,17 +124,24 @@ class SerialBridge:
         return False
 
     def _detect_ports(self) -> List[str]:
-        if self._manual_port:
-            return [self.port]
-        return [p.device for p in list_ports.comports()]
+        ports = [p.device for p in list_ports.comports()]
+        if not self._manual_port:
+            return ports
+
+        # Try configured port first, then fall back to all other detected ports.
+        # This keeps explicit config behavior while still recovering from stale COM IDs.
+        ordered = [self.port]
+        ordered.extend(p for p in ports if p != self.port)
+        return ordered
 
     def _open_candidate(self, port_name: str, require_frame: bool) -> Optional[serial.Serial]:
         ser = serial.Serial(port_name, self.baud, timeout=0.10)
         if not require_frame:
             return ser
 
+        ser.reset_input_buffer()
         probe = bytearray()
-        deadline = time.time() + 1.2
+        deadline = time.time() + 2.0
         while time.time() < deadline:
             chunk = ser.read(64)
             if chunk:
@@ -154,7 +172,9 @@ class SerialBridge:
             if not candidates:
                 raise RuntimeError("No serial ports available")
 
-            require_frame = not self._manual_port
+            # Always require at least one valid frame before selecting a port.
+            # This guarantees we keep scanning COM ports until real telemetry appears.
+            require_frame = True
             for candidate in candidates:
                 try:
                     ser = self._open_candidate(candidate, require_frame=require_frame)
@@ -168,9 +188,9 @@ class SerialBridge:
                     continue
 
             if not self._ser or not self._ser.is_open:
-                if self._manual_port:
-                    raise RuntimeError(f"Unable to open configured serial port: {self.port}")
-                raise RuntimeError("No telemetry stream found on available serial ports")
+                raise RuntimeError(
+                    "No telemetry stream found on available serial ports"
+                )
 
             self.state.connected = True
 
@@ -994,20 +1014,80 @@ def stop_scenario() -> Dict[str, Any]:
     }
 
 
-app = FastAPI(title="PwrGov Laptop Bridge", version="0.1.0")
+def _find_port_pids_windows(port: int) -> List[int]:
+    res = subprocess.run(
+        ["netstat", "-ano", "-p", "tcp"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if res.returncode != 0:
+        return []
+
+    pids = set()
+    pattern = re.compile(rf"^\s*TCP\s+\S+:{port}\s+\S+\s+LISTENING\s+(\d+)\s*$", re.IGNORECASE)
+    for line in res.stdout.splitlines():
+        m = pattern.match(line)
+        if not m:
+            continue
+        pid = int(m.group(1))
+        if pid != os.getpid():
+            pids.add(pid)
+    return sorted(pids)
+
+
+def _kill_pid_windows(pid: int) -> bool:
+    res = subprocess.run(
+        ["taskkill", "/PID", str(pid), "/F", "/T"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return res.returncode == 0
+
+
+def _autokill_port_owners(port: int) -> None:
+    if not AUTOKILL_PORT:
+        return
+
+    if os.name != "nt":
+        return
+
+    pids = _find_port_pids_windows(port)
+    if not pids:
+        return
+
+    print(f"[startup] Port {port} in use by PID(s): {pids}. Attempting auto-kill...")
+    killed = []
+    failed = []
+    for pid in pids:
+        if _kill_pid_windows(pid):
+            killed.append(pid)
+        else:
+            failed.append(pid)
+
+    if killed:
+        print(f"[startup] Killed PID(s): {killed}")
+    if failed:
+        print(f"[startup] Failed to kill PID(s): {failed}")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    bridge.start()
+    task = asyncio.create_task(broadcast_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+        bridge.stop()
+
+
+app = FastAPI(title="PwrGov Laptop Bridge", version="0.1.0", lifespan=lifespan)
 bridge = SerialBridge(UART_PORT, UART_BAUD)
 websockets: List[WebSocket] = []
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    bridge.start()
-    asyncio.create_task(broadcast_loop())
-
-
-@app.on_event("shutdown")
-def shutdown() -> None:
-    bridge.stop()
 
 
 @app.get("/api/state")
@@ -1128,4 +1208,5 @@ def root() -> FileResponse:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
+    _autokill_port_owners(API_PORT)
+    uvicorn.run("server:app", host=API_HOST, port=API_PORT, reload=False)

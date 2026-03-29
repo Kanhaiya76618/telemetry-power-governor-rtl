@@ -88,6 +88,11 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function toFiniteNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function escapeHtml(input) {
   return String(input)
     .replace(/&/g, '&amp;')
@@ -178,32 +183,113 @@ function setCheckedIfIdle(inputEl, value) {
 function makeLineChart(canvasId, datasets) {
   const target = el(canvasId);
   if (!target || typeof Chart === 'undefined') return null;
-  return new Chart(target, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets,
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      normalized: true,
-      scales: {
-        x: {
-          ticks: { color: '#8fb0bd' },
-          grid: { color: 'rgba(255,255,255,0.06)' },
+  try {
+    return new Chart(target, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        normalized: true,
+        scales: {
+          x: {
+            ticks: { color: '#8fb0bd' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+          },
+          y: {
+            ticks: { color: '#8fb0bd' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+          },
         },
-        y: {
-          ticks: { color: '#8fb0bd' },
-          grid: { color: 'rgba(255,255,255,0.06)' },
+        plugins: {
+          legend: { labels: { color: '#cfe5ee' } },
         },
       },
-      plugins: {
-        legend: { labels: { color: '#cfe5ee' } },
+    });
+  } catch (err) {
+    console.error(`Chart init failed for ${canvasId}`, err);
+    return null;
+  }
+}
+
+function makeVerifyChart() {
+  const target = el('verifyChart');
+  if (!target || typeof Chart === 'undefined') return null;
+  try {
+    return new Chart(target, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Grant A', data: [], borderColor: '#4fc3f7', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
+          { label: 'Grant B', data: [], borderColor: '#81c784', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
+          { label: 'Budget', data: [], borderColor: '#ffd54f', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
+          { label: 'Efficiency', data: [], borderColor: '#ef5350', tension: 0.15, pointRadius: 0, yAxisID: 'yEff' },
+        ],
       },
-    },
-  });
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        normalized: true,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        layout: {
+          padding: {
+            top: 10,
+            right: 24,
+            left: 6,
+            bottom: 4,
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#cfe5ee',
+              boxWidth: 26,
+              boxHeight: 10,
+              padding: 14,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#8fb0bd', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            title: { display: true, text: 'Scenario Time (s)', color: '#8fb0bd' },
+          },
+          yCtl: {
+            type: 'linear',
+            position: 'left',
+            min: 0,
+            max: 7,
+            ticks: { color: '#8fb0bd', stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            title: { display: true, text: 'Grant / Budget', color: '#8fb0bd' },
+          },
+          yEff: {
+            type: 'linear',
+            position: 'right',
+            min: 0,
+            max: 1023,
+            ticks: { color: '#f1a0a0', stepSize: 128 },
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Efficiency', color: '#f1a0a0' },
+          },
+        },
+      },
+    });
+  } catch (err) {
+    console.error('Chart init failed for verifyChart', err);
+    return null;
+  }
 }
 
 const trendChart = makeLineChart('trendChart', [
@@ -212,66 +298,7 @@ const trendChart = makeLineChart('trendChart', [
   { label: 'Temp B', data: [], borderColor: '#ff6f61', tension: 0.20, pointRadius: 0 },
 ]);
 
-const verifyChart = makeLineChart('verifyChart', [
-  { label: 'Grant A', data: [], borderColor: '#4fc3f7', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
-  { label: 'Grant B', data: [], borderColor: '#81c784', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
-  { label: 'Budget', data: [], borderColor: '#ffd54f', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
-  { label: 'Efficiency', data: [], borderColor: '#ef5350', tension: 0.15, pointRadius: 0, yAxisID: 'yEff' },
-]);
-
-if (verifyChart) {
-  verifyChart.options.interaction = {
-    mode: 'index',
-    intersect: false,
-  };
-
-  verifyChart.options.layout = {
-    padding: {
-      top: 10,
-      right: 24,
-      left: 6,
-      bottom: 4,
-    },
-  };
-
-  verifyChart.options.plugins = verifyChart.options.plugins || {};
-  verifyChart.options.plugins.legend = {
-    position: 'top',
-    labels: {
-      color: '#cfe5ee',
-      boxWidth: 26,
-      boxHeight: 10,
-      padding: 14,
-    },
-  };
-
-  verifyChart.options.scales = {
-    x: {
-      ticks: { color: '#8fb0bd', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
-      grid: { color: 'rgba(255,255,255,0.06)' },
-      title: { display: true, text: 'Scenario Time (s)', color: '#8fb0bd' },
-    },
-    yCtl: {
-      type: 'linear',
-      position: 'left',
-      min: 0,
-      max: 7,
-      ticks: { color: '#8fb0bd', stepSize: 1 },
-      grid: { color: 'rgba(255,255,255,0.08)' },
-      title: { display: true, text: 'Grant / Budget', color: '#8fb0bd' },
-    },
-    yEff: {
-      type: 'linear',
-      position: 'right',
-      min: 0,
-      max: 1023,
-      ticks: { color: '#f1a0a0', stepSize: 128 },
-      grid: { drawOnChartArea: false },
-      title: { display: true, text: 'Efficiency', color: '#f1a0a0' },
-    },
-  };
-  verifyChart.update('none');
-}
+const verifyChart = makeVerifyChart();
 
 function setConnection(online, labelOverride = null) {
   if (connDot) {
@@ -328,16 +355,20 @@ function pushTrendPoint(state) {
 
   const labels = trendChart.data.labels;
   labels.push(new Date().toLocaleTimeString());
-  trendChart.data.datasets[0].data.push(state.efficiency ?? 0);
-  trendChart.data.datasets[1].data.push(state.temp_a ?? 0);
-  trendChart.data.datasets[2].data.push(state.temp_b ?? 0);
+  trendChart.data.datasets[0].data.push(toFiniteNumber(state.efficiency, 0));
+  trendChart.data.datasets[1].data.push(toFiniteNumber(state.temp_a, 0));
+  trendChart.data.datasets[2].data.push(toFiniteNumber(state.temp_b, 0));
 
   while (labels.length > 80) {
     labels.shift();
     trendChart.data.datasets.forEach((ds) => ds.data.shift());
   }
 
-  trendChart.update('none');
+  try {
+    trendChart.update('none');
+  } catch (err) {
+    console.error('trendChart update failed', err);
+  }
 }
 
 function syncManualControlsFromState(state) {
@@ -671,22 +702,41 @@ async function runSimTests() {
 
 function renderScenarioTimeline(result) {
   if (!verifyChart) return;
-  const timeline = result.timeline || [];
-  const effValues = timeline.map((p) => p.efficiency ?? 0);
+  const timeline = Array.isArray(result.timeline) ? result.timeline : [];
+
+  const labels = [];
+  const grantA = [];
+  const grantB = [];
+  const budget = [];
+  const effValues = [];
+
+  timeline.forEach((p) => {
+    const tMs = toFiniteNumber(p && p.t_ms, 0);
+    labels.push((tMs / 1000).toFixed(1));
+    grantA.push(toFiniteNumber(p && p.grant_a, 0));
+    grantB.push(toFiniteNumber(p && p.grant_b, 0));
+    budget.push(toFiniteNumber(p && p.current_budget, 0));
+    effValues.push(toFiniteNumber(p && p.efficiency, 0));
+  });
+
   const effPeak = effValues.length ? Math.max(...effValues, 64) : 64;
   const effAxisMax = Math.max(128, Math.ceil(effPeak / 64) * 64);
 
-  if (verifyChart.options.scales && verifyChart.options.scales.yEff) {
+  if (verifyChart.options.scales && verifyChart.options.scales.yEff && verifyChart.options.scales.yEff.ticks) {
     verifyChart.options.scales.yEff.max = effAxisMax;
     verifyChart.options.scales.yEff.ticks.stepSize = effAxisMax <= 256 ? 32 : (effAxisMax <= 512 ? 64 : 128);
   }
 
-  verifyChart.data.labels = timeline.map((p) => (p.t_ms / 1000).toFixed(1));
-  verifyChart.data.datasets[0].data = timeline.map((p) => p.grant_a ?? 0);
-  verifyChart.data.datasets[1].data = timeline.map((p) => p.grant_b ?? 0);
-  verifyChart.data.datasets[2].data = timeline.map((p) => p.current_budget ?? 0);
+  verifyChart.data.labels = labels;
+  verifyChart.data.datasets[0].data = grantA;
+  verifyChart.data.datasets[1].data = grantB;
+  verifyChart.data.datasets[2].data = budget;
   verifyChart.data.datasets[3].data = effValues;
-  verifyChart.update('none');
+  try {
+    verifyChart.update('none');
+  } catch (err) {
+    console.error('verifyChart update failed', err);
+  }
 
   if (scenarioSummary) {
     scenarioSummary.textContent = JSON.stringify(
