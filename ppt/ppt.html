@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PwrGov-X: Final Presentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617; /* slate-950 */
+            color: #f8fafc; /* slate-50 */
+            overflow: hidden; /* No scrolling globally */
+            margin: 0;
+            padding: 0;
+        }
+
+        .tech-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Circuit Board Background Pattern from end.html */
+        .bg-pattern {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(to right, rgba(30, 41, 59, 0.2) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(30, 41, 59, 0.2) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: 0;
+        }
+
+        .slide {
+            display: none;
+            opacity: 0;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7); /* slate-900 */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.6); /* slate-700 */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .accent-glow {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); /* sky-400 */
+            border-color: rgba(56, 189, 248, 0.5);
+        }
+
+        /* "Appear In" Animations */
+        @keyframes appearIn {
+            0% { opacity: 0; transform: translateY(15px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide.active .appear {
+            animation: appearIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0; /* Starts hidden */
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative text-slate-200">
+
+    <!-- Background Pattern -->
+    <div class="bg-pattern"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950/80 via-transparent to-slate-900/90 z-0"></div>
+
+    <!-- Header -->
+    <header class="relative z-20 flex justify-between items-center p-6 border-b border-slate-800 glass-panel h-16">
+        <div class="flex items-center gap-4">
+            <div class="w-3 h-3 rounded-full bg-sky-500 animate-pulse"></div>
+            <h1 class="text-xl font-bold tracking-wide"><span class="text-sky-400 tech-font">PwrGov-X</span> // Final Review</h1>
+        </div>
+        <div class="tech-font text-sm text-slate-400" id="slide-counter">Slide 1 / 10</div>
+    </header>
+
+    <!-- Presentation Area -->
+    <main class="relative z-10 flex-1 w-full max-w-7xl mx-auto p-6 flex flex-col justify-center">
+
+        <!-- Slide 1: Problem Statement -->
+        <div class="slide active flex-col h-full w-full justify-center" id="slide-1">
+            <h2 class="text-3xl font-bold text-white mb-1 appear delay-1">1. Problem Statement & Motivation</h2>
+            <h3 class="text-lg text-sky-400 tech-font mb-6 appear delay-1">THEME 3: POWER MANAGEMENT</h3>
+            
+            <div class="grid grid-cols-2 gap-6 flex-1 max-h-[65%]">
+                <div class="glass-panel p-5 rounded-xl flex flex-col justify-center appear delay-2">
+                    <h4 class="text-md font-bold mb-3 border-b border-slate-700 pb-1 text-sky-300">Background</h4>
+                    <p class="text-slate-300 leading-snug text-sm mb-4">
+                        Power efficiency is a critical challenge in modern SoCs. Systems dynamically adjust performance based on workload, activity, and stall conditions. This problem focuses on designing a hardware power controller that monitors system behavior and makes control decisions accordingly.
+                    </p>
+                    <h4 class="text-md font-bold mb-3 border-b border-slate-700 pb-1 text-sky-300">Sensor & Workload Inputs</h4>
+                    <p class="text-slate-300 leading-snug text-sm">
+                        Physical thermal sensors and hardware workload monitors are simulated using software-writable registers or onboard switches. This includes thermal inputs for the thermal-aware innovation add-on.
+                    </p>
+                </div>
+                <div class="glass-panel p-5 rounded-xl flex flex-col justify-center accent-glow appear delay-3">
+                    <h4 class="text-md font-bold text-sky-300 mb-3 tech-font border-b border-slate-700 pb-1">Base Implementation & Add-ons</h4>
+                    <ul class="list-disc pl-5 space-y-2 text-sm text-slate-300">
+                        <li><span class="text-white font-medium">Requirements:</span> Monitor activity signals, compute utilization over windows, detect idle/stall conditions, support Active & Low-Power states.</li>
+                        <li><span class="text-white font-medium">Modules:</span> Activity monitor, Counters, FSM controller, Control signal generator, Register interface.</li>
+                        <li><span class="text-sky-300 font-medium">Level 1 Innovation:</span> Predictive workload detection, Thermal-aware control, Multi-state modes, Oscillation reduction.</li>
+                        <li><span class="text-sky-300 font-medium">Level 2 Innovation:</span> System-level workload simulation, Global power budgeting, Performance feedback loop.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 glass-panel rounded-lg border-l-4 border-sky-500 bg-slate-800/50 appear delay-4">
+                <p class="text-sm tech-font text-sky-200">"Good morning/afternoon. The core problem is to make power-state decisions dynamically while maintaining performance and safety..."</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Approach -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-2">
+            <h2 class="text-3xl font-bold text-white mb-6 appear delay-1">2. Approach to Solving the Problem</h2>
+            
+            <div class="flex gap-6 flex-1 max-h-[75%] items-center">
+                <!-- Visual representation -->
+                <div class="w-1/3 flex flex-col justify-center items-center py-2 h-full appear delay-2">
+                    <div class="w-full text-center p-3 glass-panel rounded border border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+                        <h4 class="font-bold text-green-400 text-sm">Host Application (GUI)</h4>
+                        <p class="text-xs text-slate-400">Python-based, Bidirectional</p>
+                    </div>
+                    <div class="h-6 w-1 bg-gradient-to-b from-green-500/50 to-blue-500/50 relative"></div>
+                    <div class="w-full text-center p-3 glass-panel rounded border border-blue-500/30">
+                        <h4 class="font-bold text-blue-400 text-sm">USB Bridge</h4>
+                        <p class="text-xs text-slate-400">Plug-and-play Connectivity</p>
+                    </div>
+                    <div class="h-6 w-1 bg-gradient-to-b from-blue-500/50 to-purple-500/50 relative"></div>
+                    <div class="w-full text-center p-3 glass-panel rounded border border-purple-500/30">
+                        <h4 class="font-bold text-purple-400 text-sm">Dual-Core Firmware</h4>
+                        <p class="text-xs text-slate-400">Core 0: Control | Core 1: Comm</p>
+                    </div>
+                    <div class="h-6 w-1 bg-gradient-to-b from-purple-500/50 to-orange-500/50 relative"></div>
+                    <div class="w-full text-center p-3 glass-panel rounded border border-orange-500/30">
+                        <h4 class="font-bold text-orange-400 text-sm">Hardware Layer</h4>
+                        <p class="text-xs text-slate-400">FPGA Fabric Telemetry</p>
+                    </div>
+                </div>
+                
+                <!-- Text Script Grid (No Scroll) -->
+                <div class="w-2/3 grid grid-cols-2 gap-4 h-full">
+                    <div class="glass-panel p-4 rounded-xl flex flex-col justify-center appear delay-2">
+                        <h4 class="text-orange-400 font-bold mb-1 text-sm border-b border-slate-700 pb-1">Hardware Layer</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">The FPGA fabric is continuously sampling power telemetry — voltage, current, and derived metrics — at high speed. This raw data feeds into a custom power governor module, which actively computes a policy decision in real time.</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl flex flex-col justify-center appear delay-3">
+                        <h4 class="text-purple-400 font-bold mb-1 text-sm border-b border-slate-700 pb-1">Firmware Split</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">Our first key differentiator. Core 0 owns the real-time control loop and applies the governor policy. Core 1 handles communication. This separation ensures the control loop is never blocked by I/O.</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl flex flex-col justify-center appear delay-4">
+                        <h4 class="text-blue-400 font-bold mb-1 text-sm border-b border-slate-700 pb-1">USB Bridge</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">Data leaves the SoC through USB, giving us plug-and-play host connectivity with no custom drivers. The telemetry stream is structured so the host application can parse it instantly.</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl flex flex-col justify-center appear delay-5">
+                        <h4 class="text-green-400 font-bold mb-1 text-sm border-b border-slate-700 pb-1">Host GUI</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">A Python-based application receives, parses, and visualizes the telemetry. It closes the loop: user adjustments travel back down and are applied. A true bidirectional control feedback loop.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Design Architecture -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-3">
+            <h2 class="text-3xl font-bold text-white mb-4 appear delay-1">3. Design Architecture</h2>
+            <div class="flex gap-6 flex-1 max-h-[80%] items-center">
+                <!-- Architecture Image -->
+                <div class="w-3/5 glass-panel rounded-xl h-full flex items-center justify-center bg-slate-900/50 p-2 appear delay-2">
+                    <img src="./Screenshot%202026-03-29%20at%201.43.10%20PM.png" alt="Architecture Diagram" 
+                        onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/Screenshot%202026-03-29%20at%201.43.10%20PM.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'600\' height=\'400\'><rect width=\'100%\' height=\'100%\' fill=\'%230f172a\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'20\' fill=\'%2338bdf8\' text-anchor=\'middle\'>[ Architecture Diagram: Screenshot ]</text></svg>'" 
+                         class="max-w-full max-h-full object-contain rounded">
+                </div>
+                <!-- Architecture Script -->
+                <div class="w-2/5 flex flex-col gap-3 h-full justify-center">
+                    <div class="border-l-2 border-sky-500 pl-3 glass-panel p-3 rounded-r-lg appear delay-2">
+                        <h4 class="font-bold text-sky-400 text-xs mb-1">[Far Left] Safety Policies</h4>
+                        <p class="text-xs text-slate-300 leading-snug">"Simulated thermal data feeds into our Register Interface, which establishes the safety policies and thresholds for the entire chip."</p>
+                    </div>
+                    <div class="border-l-2 border-green-500 pl-3 glass-panel p-3 rounded-r-lg appear delay-3">
+                        <h4 class="font-bold text-green-400 text-xs mb-1">[Center] Local FSM</h4>
+                        <p class="text-xs text-slate-300 leading-snug">"Inside each core, a Window Counter collects raw telemetry. This data flows into the local Power FSM, predicting workloads and requesting an ideal power state."</p>
+                    </div>
+                    <div class="border-l-2 border-red-500 pl-3 glass-panel p-3 rounded-r-lg appear delay-4">
+                        <h4 class="font-bold text-red-400 text-xs mb-1">[Right] Global Arbiter</h4>
+                        <p class="text-xs text-slate-300 leading-snug">"Both cores send requests to the Thermal-Aware Arbiter. If the global power budget is tight, the Arbiter steps in to restrict and prioritize them."</p>
+                    </div>
+                    <div class="border-l-2 border-yellow-500 pl-3 glass-panel p-3 rounded-r-lg appear delay-5">
+                        <h4 class="font-bold text-yellow-400 text-xs mb-1">[Bottom] Feedback Loop</h4>
+                        <p class="text-xs text-slate-300 leading-snug">"If heavy throttling occurs, our Performance Feedback Loop dynamically expands the budget. The Power Logger records every action for full autonomy."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Testbenches -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-4">
+            <h2 class="text-3xl font-bold text-white mb-4 appear delay-1">4. Self-Checking Testbench Outputs</h2>
+            
+            <div class="glass-panel p-4 rounded-xl mb-4 border-l-4 border-emerald-500 appear delay-2 text-sm">
+                <p class="text-slate-300">For verification, we used self-checking testbenches with rigorous pass/fail markers. We validated: Counter window behavior, FSM transition policies, Thermal register interfaces, and Arbiter budget priorities.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6 flex-1 max-h-[55%] items-stretch">
+                <div class="bg-[#0f111a] rounded-xl p-4 font-mono text-xs border border-slate-800 shadow-inner text-green-400 flex flex-col appear delay-3">
+                    <div class="text-slate-500 mb-2 border-b border-slate-800 pb-1"># Console Output: tb_power_arbiter_budget.log</div>
+                    <div class="flex-1 flex flex-col justify-center">
+                        <p>> Starting FSM Policy Simulation...</p>
+                        <p>> Requesting state: ACTIVE (Core A)</p>
+                        <p>> Thermal threshold: OK</p>
+                        <p>> State transition -> GRANTED</p>
+                        <p class="my-1">> <span class="text-white font-bold bg-green-600/30 px-1 rounded">TB_PASS</span> Policy FSM behaved as expected.</p>
+                        <p class="text-slate-600">...</p>
+                        <p>> Requesting state: BOOST (Core B)</p>
+                        <p>> Global Budget: RESTRICTED</p>
+                        <p>> Arbiter overriding state -> ACTIVE</p>
+                        <p class="my-1">> <span class="text-white font-bold bg-green-600/30 px-1 rounded">TB_PASS</span> Arbitration override successful.</p>
+                        <p class="mt-2 text-sky-400">> Simulation Complete. 0 Errors.</p>
+                    </div>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-xl flex flex-col justify-center items-center text-center appear delay-4">
+                    <svg class="w-14 h-14 text-sky-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    <h3 class="text-lg font-bold mb-2">EDA Playground Verification</h3>
+                    <p class="text-slate-400 text-sm mb-5">Automated confidence before hardware deployment achieved through detailed behavioral simulations.</p>
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <span class="px-2 py-1 bg-slate-800 rounded text-[10px] tech-font text-slate-300">tb_counters_window.vvp</span>
+                        <span class="px-2 py-1 bg-slate-800 rounded text-[10px] tech-font text-slate-300">tb_power_fsm_policy.vvp</span>
+                        <span class="px-2 py-1 bg-slate-800 rounded text-[10px] tech-font text-slate-300">tb_reg_interface.vvp</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: FPGA Placement & Synthesis -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-5">
+            <h2 class="text-3xl font-bold text-white mb-2 appear delay-1">5. Implementation & Placement Results</h2>
+            <p class="text-slate-400 text-sm mb-4 appear delay-1">Synthesis, Implementation, and Bitstream Generation successfully completed.</p>
+            
+            <div class="grid grid-cols-2 gap-6 flex-1 max-h-[70%]">
+                <div class="glass-panel p-2 rounded-xl flex items-center justify-center bg-slate-900/50 relative group appear delay-2">
+                    <img src="./image_e03d7b.png" alt="Placement Map 1" 
+                        onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/image_e03d7b.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\'><rect width=\'100%\' height=\'100%\' fill=\'%230f172a\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'16\' fill=\'%234ade80\' text-anchor=\'middle\'>[ Device Placement View 1 ]</text></svg>'" 
+                         class="w-full h-full object-cover rounded opacity-90 group-hover:opacity-100 transition-opacity">
+                     <div class="absolute bottom-4 left-4 bg-slate-950/90 px-3 py-1 rounded tech-font text-xs text-green-400 border border-green-500/30">impl_1 : Completed</div>
+                </div>
+                <div class="glass-panel p-2 rounded-xl flex items-center justify-center bg-slate-900/50 relative group appear delay-3">
+                    <img src="./image_e03d84.png" alt="Placement Map 2" 
+                        onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/image_e03d84.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\'><rect width=\'100%\' height=\'100%\' fill=\'%230f172a\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'16\' fill=\'%234ade80\' text-anchor=\'middle\'>[ Device Routing View 2 ]</text></svg>'" 
+                         class="w-full h-full object-cover rounded opacity-90 group-hover:opacity-100 transition-opacity">
+                     <div class="absolute bottom-4 left-4 bg-slate-950/90 px-3 py-1 rounded tech-font text-xs text-sky-400 border border-sky-500/30">write_bitstream : Ready</div>
+                </div>
+            </div>
+            <div class="mt-4 text-center appear delay-4">
+                <p class="text-sm text-slate-300 italic">"This view confirms placement completion and gives us confidence in physical feasibility and timing closure context."</p>
+            </div>
+        </div>
+
+        <!-- Slide 6: Reports (Timing, Power, Hardware) -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-6">
+            <h2 class="text-3xl font-bold text-white mb-6 appear delay-1">6. Reports: Timing, Power & Hardware</h2>
+            
+            <div class="grid grid-cols-3 gap-6 flex-1 max-h-[70%] items-stretch">
+                <!-- Timing -->
+                <div class="glass-panel p-4 rounded-xl flex flex-col items-center text-center appear delay-2">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 mb-2 border border-blue-500/50">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 border-b border-slate-700 pb-1 w-full text-sky-300">Timing</h3>
+                    <div class="flex-1 w-full flex items-center justify-center bg-slate-900/50 rounded overflow-hidden p-1 mb-2">
+                            <img src="./image_e03a00.png" alt="Timing Report" 
+                                onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/image_e03a00.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'100\'><rect width=\'100%\' height=\'100%\' fill=\'transparent\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'12\' fill=\'%2394a3b8\' text-anchor=\'middle\'>Timing Data</text></svg>'" 
+                             class="object-contain w-full h-full max-h-24">
+                    </div>
+                    <p class="text-xs text-green-400 font-bold tech-font bg-green-900/30 px-2 py-1 rounded w-full">Target Clock MET</p>
+                </div>
+                
+                <!-- Power -->
+                <div class="glass-panel p-4 rounded-xl flex flex-col items-center text-center appear delay-3">
+                    <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 mb-2 border border-orange-500/50">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 border-b border-slate-700 pb-1 w-full text-orange-300">Power Usage</h3>
+                    <div class="flex-1 w-full flex items-center justify-center bg-slate-900/50 rounded overflow-hidden p-1 mb-2">
+                            <img src="./image_e03cc5.png" alt="Power Report" 
+                                onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/image_e03cc5.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'100\'><rect width=\'100%\' height=\'100%\' fill=\'transparent\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'12\' fill=\'%2394a3b8\' text-anchor=\'middle\'>Power Data</text></svg>'" 
+                             class="object-contain w-full h-full max-h-24">
+                    </div>
+                    <p class="text-xs text-slate-300 w-full">Aligns with expected profile.</p>
+                </div>
+                
+                <!-- Hardware -->
+                <div class="glass-panel p-4 rounded-xl flex flex-col items-center text-center appear delay-4">
+                    <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 mb-2 border border-purple-500/50">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 border-b border-slate-700 pb-1 w-full text-purple-300">Hardware</h3>
+                    <div class="flex-1 flex flex-col justify-center bg-slate-800/50 w-full rounded mb-2 text-xs tech-font text-slate-300 p-2 text-left space-y-2">
+                        <div><span class="text-slate-500">Board:</span> Cora Z7</div>
+                        <div><span class="text-slate-500">Clocking:</span> Validated</div>
+                        <div><span class="text-slate-500">Status:</span> Deployable</div>
+                    </div>
+                    <p class="text-xs text-slate-300 w-full">Verified on target FPGA.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Utilization -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-7">
+            <h2 class="text-3xl font-bold text-white mb-6 appear delay-1">7. Resource Utilization</h2>
+            
+            <div class="flex gap-6 flex-1 max-h-[75%] items-center">
+                <div class="w-1/2 grid grid-cols-2 gap-4 h-full">
+                    <div class="glass-panel p-4 rounded-xl border-l-2 border-sky-400 flex flex-col justify-center appear delay-2">
+                        <h4 class="text-slate-400 text-xs uppercase tracking-wider">LUTs</h4>
+                        <p class="text-xl font-bold tech-font text-white mt-1">Within Budget</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl border-l-2 border-sky-400 flex flex-col justify-center appear delay-3">
+                        <h4 class="text-slate-400 text-xs uppercase tracking-wider">Flip-Flops (FFs)</h4>
+                        <p class="text-xl font-bold tech-font text-white mt-1">Within Budget</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl border-l-2 border-sky-400 flex flex-col justify-center appear delay-4">
+                        <h4 class="text-slate-400 text-xs uppercase tracking-wider">DSPs</h4>
+                        <p class="text-xl font-bold tech-font text-white mt-1">Optimal</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl border-l-2 border-sky-400 flex flex-col justify-center appear delay-5">
+                        <h4 class="text-slate-400 text-xs uppercase tracking-wider">BRAM</h4>
+                        <p class="text-xl font-bold tech-font text-white mt-1">Efficient</p>
+                    </div>
+                    <div class="col-span-2 p-4 bg-slate-800/50 rounded-xl italic text-sm text-slate-300 flex items-center justify-center border border-slate-700/50 appear delay-5">
+                        "Interpretation: Resource usage remains well within the target device budget, leaving ample room for future scalability and add-ons."
+                    </div>
+                </div>
+                <div class="w-1/2 flex flex-col gap-4 h-full justify-between">
+                    <img src="./image_e04064.png" alt="Utilization 1" 
+                        onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/image_e04064.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%230f172a\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'16\' fill=\'%2394a3b8\' text-anchor=\'middle\'>[ Utilization Graph 1 ]</text></svg>'" 
+                         class="rounded-xl border border-slate-700 h-[48%] w-full object-cover appear delay-2">
+                    <img src="./image_e04083.png" alt="Utilization 2" 
+                        onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='ppt/image_e04083.png';return;} this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%230f172a\'/><text x=\'50%\' y=\'50%\' font-family=\'monospace\' font-size=\'16\' fill=\'%2394a3b8\' text-anchor=\'middle\'>[ Utilization Graph 2 ]</text></svg>'" 
+                         class="rounded-xl border border-slate-700 h-[48%] w-full object-cover appear delay-4">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Live Demo & Vitis -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-8">
+            <div class="flex justify-between items-end mb-4 appear delay-1">
+                <h2 class="text-3xl font-bold text-white">8. Live Demonstration: Vitis & GUI</h2>
+                <div class="bg-red-500/20 border border-red-500/50 text-red-400 px-3 py-1 rounded text-xs tech-font flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    LIVE SYSTEM BRIDGE
+                </div>
+            </div>
+            
+            <div class="flex gap-6 flex-1 max-h-[75%]">
+                <div class="w-1/3 glass-panel p-5 rounded-xl flex flex-col justify-center appear delay-2">
+                    <h3 class="text-md font-bold text-sky-400 mb-3 border-b border-slate-700 pb-1">Vitis Bare-Metal Bridge</h3>
+                    <ul class="space-y-3 text-xs text-slate-300 mb-6">
+                        <li class="flex items-start gap-2"><svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> AXI register read/write for host mode, requests, and budget constraints.</li>
+                        <li class="flex items-start gap-2"><svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Periodic telemetry frame generation over UART.</li>
+                        <li class="flex items-start gap-2"><svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Command handling to change runtime behavior instantly.</li>
+                    </ul>
+                    <h3 class="text-md font-bold text-sky-400 mb-2 border-b border-slate-700 pb-1">Python GUI Overlay</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">Send control commands, display live telemetry, decode status, and trigger simulations to see immediate pass/fail states in real-time.</p>
+                </div>
+                
+                <div class="w-2/3 rounded-xl overflow-hidden bg-black flex items-center justify-center border border-slate-700 shadow-2xl relative appear delay-3">
+                    <!-- Embedded YouTube Video -->
+                    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/vNV7MHhQULs" title="PwrGov-X Demonstration" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="z-10 relative"></iframe>
+                    <div class="absolute inset-0 bg-slate-900 flex items-center justify-center z-0">
+                        <div class="text-center">
+                            <svg class="w-10 h-10 text-slate-600 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                            <p class="tech-font text-slate-500 text-xs">Loading Demo Video...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Challenges -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-9">
+            <h2 class="text-3xl font-bold text-white mb-8 appear delay-1">9. Challenges Faced During Development</h2>
+            
+            <div class="grid grid-cols-2 gap-6 flex-1 max-h-[60%]">
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-amber-500 flex flex-col justify-center appear delay-2">
+                    <h3 class="text-lg font-bold text-amber-400 mb-2 tech-font">01 // Integration Consistency</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Maintaining consistency between the RTL hierarchy and the Vivado block design during iterative updates required strict version control and boundary definitions.</p>
+                </div>
+                
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-amber-500 flex flex-col justify-center appear delay-3">
+                    <h3 class="text-lg font-bold text-amber-400 mb-2 tech-font">02 // Stale Generated Artifacts</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Encountered build and run issues stemming from stale generated artifacts within the Vivado environment, necessitating careful script-based cleanup workflows.</p>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-amber-500 flex flex-col justify-center appear delay-4">
+                    <h3 class="text-lg font-bold text-amber-400 mb-2 tech-font">03 // Host Override Feedback</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Keeping the feedback policy behavior consistent and predictable when transitioning in and out of manual Host Override modes was logically complex.</p>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl border-t-4 border-amber-500 flex flex-col justify-center appear delay-5">
+                    <h3 class="text-lg font-bold text-amber-400 mb-2 tech-font">04 // Verification Coverage</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">Ensuring our testbenches thoroughly covered both isolated module-level behavior and the deeply integrated, timing-sensitive system behavior.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Conclusion -->
+        <div class="slide flex-col h-full w-full justify-center" id="slide-10">
+            <h2 class="text-4xl font-bold text-center text-white mb-8 appear delay-1">10. Conclusion & Unique Contributions</h2>
+            
+            <div class="flex gap-6 flex-1 max-h-[60%] items-stretch">
+                <div class="w-1/2 glass-panel p-6 rounded-xl accent-glow flex flex-col justify-center appear delay-2">
+                    <h3 class="text-lg font-bold text-sky-400 mb-4 border-b border-sky-900 pb-2">Our Unique Contributions</h3>
+                    <ul class="space-y-3 text-slate-200 text-sm">
+                        <li class="flex items-start gap-3"><div class="text-sky-400 tech-font font-bold">1.</div> Closed-loop feedback-driven budget policy embedded directly in hardware.</li>
+                        <li class="flex items-start gap-3"><div class="text-sky-400 tech-font font-bold">2.</div> Curated, highly-automated self-checking verification benches.</li>
+                        <li class="flex items-start gap-3"><div class="text-sky-400 tech-font font-bold">3.</div> Robust end-to-end software bridge bridging Vitis to AXI registers.</li>
+                        <li class="flex items-start gap-3"><div class="text-sky-400 tech-font font-bold">4.</div> GUI-assisted telemetry/control workflow for instantaneous live validation.</li>
+                        <li class="flex items-start gap-3"><div class="text-sky-400 tech-font font-bold">5.</div> Full pipeline proof: Simulation → Synthesis → Implementation → Demo.</li>
+                    </ul>
+                </div>
+                
+                <div class="w-1/2 flex flex-col items-center justify-center text-center p-6 bg-gradient-to-br from-slate-900 to-black rounded-xl border border-slate-700 appear delay-4">
+                    <svg class="w-16 h-16 text-sky-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    <h3 class="text-xl font-bold mb-3">Mission Accomplished</h3>
+                    <p class="text-slate-400 text-sm italic leading-relaxed">
+                        "We achieved a complete FPGA power-governor system with verified RTL, successful synthesis/implementation/bitstream, software control via Vitis, and live GUI-based monitoring. The design is ready for final evaluation."
+                    </p>
+                    <p class="mt-6 text-sky-400 font-bold tracking-widest uppercase text-sm">Thank You</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Navigation Footer -->
+    <footer class="relative z-20 flex justify-center items-center p-3 glass-panel border-t border-slate-800 h-14">
+        <div class="flex items-center gap-6">
+            <button onclick="prevSlide()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 rounded transition-colors text-xs tech-font text-slate-300 flex items-center gap-2 border border-slate-700 hover:border-sky-500">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg> Prev
+            </button>
+            
+            <div class="flex gap-2 items-center" id="slide-dots">
+                <!-- Dots generated by JS -->
+            </div>
+
+            <button onclick="nextSlide()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 rounded transition-colors text-xs tech-font text-sky-400 flex items-center gap-2 border border-slate-700 hover:border-sky-500">
+                Next <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const slideCounter = document.getElementById('slide-counter');
+        const dotsContainer = document.getElementById('slide-dots');
+        let currentSlide = 0;
+
+        // Initialize dots
+        slides.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = `w-2 h-2 rounded-full cursor-pointer transition-colors duration-300 ${idx === 0 ? 'bg-sky-500 shadow-[0_0_8px_#38bdf8]' : 'bg-slate-700'}`;
+            dot.onclick = () => goToSlide(idx);
+            dotsContainer.appendChild(dot);
+        });
+
+        const dots = dotsContainer.children;
+
+        // This effectively triggers the animation by forcing a reflow
+        function triggerAnimations(slide) {
+            const animatedElements = slide.querySelectorAll('.appear');
+            animatedElements.forEach(el => {
+                el.style.animation = 'none';
+                void el.offsetWidth; // trigger reflow
+                el.style.animation = null; 
+            });
+        }
+
+        function updateUI() {
+            slides.forEach((slide, idx) => {
+                if (idx === currentSlide) {
+                    slide.classList.add('active');
+                    triggerAnimations(slide);
+                    dots[idx].className = 'w-2 h-2 rounded-full cursor-pointer transition-colors duration-300 bg-sky-500 shadow-[0_0_8px_#38bdf8] scale-125';
+                } else {
+                    slide.classList.remove('active');
+                    dots[idx].className = 'w-2 h-2 rounded-full cursor-pointer transition-colors duration-300 bg-slate-700 hover:bg-slate-500';
+                }
+            });
+            slideCounter.textContent = `Slide ${currentSlide + 1} / ${slides.length}`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateUI();
+            }
+        }
+
+        function goToSlide(idx) {
+            if(currentSlide !== idx) {
+                currentSlide = idx;
+                updateUI();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>
