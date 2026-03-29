@@ -1,0 +1,16 @@
+VCD info: dumpfile dump.vcd opened for output.
+=========================================
+  power_arbiter integration test starting
+=========================================
+
+--- TEST 1: Both heavy => arbiter should throttle B ---
+  req_a=00 req_b=00  grant_a=00 grant_b=00  applied_a=00 applied_b=00
+  TEST 1 FAILED: Unexpected arbiter/grant behavior <--
+
+--- TEST 2: Reduce B then re-instate; expect sensible grants ---
+  After B idle: req_a=00 req_b=00  grant_a=00 grant_b=00  applied_a=00 applied_b=00
+  After B reinstated: req_a=00 req_b=00  grant_a=00 grant_b=00  applied_a=00 applied_b=00
+
+--- Arbiter integration test complete ---
+
+tb_power_arbiter.v:226: $finish called at 7045000 (1ps)

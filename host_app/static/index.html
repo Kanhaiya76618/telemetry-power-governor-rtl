@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/static/style.css?v=20260329a" />
+  <link rel="stylesheet" href="/static/style.css?v=20260329e" />
 </head>
 <body>
   <div class="ui-root">
@@ -207,11 +207,26 @@
               <li>Loading testbench notes...</li>
             </ul>
           </div>
+
+          <div class="card sim-card">
+            <h3>RTL Simulation Runner (Icarus)</h3>
+            <div class="sim-actions">
+              <button id="runSimBtn" type="button">Run All RTL Tests</button>
+              <button id="refreshSimTestsBtn" type="button" class="ghost-btn">Refresh Test List</button>
+            </div>
+            <div id="simStatus" class="scenario-status">Loading simulation test catalog from backend...</div>
+            <ul id="simCatalog" class="sim-catalog">
+              <li>Loading...</li>
+            </ul>
+            <div id="simResults" class="sim-results">
+              <div class="sim-empty">No simulation run yet.</div>
+            </div>
+          </div>
         </aside>
       </section>
     </main>
   </div>
 
-  <script src="/static/app.js?v=20260329b"></script>
+  <script src="/static/app.js?v=20260329e"></script>
 </body>
 </html>

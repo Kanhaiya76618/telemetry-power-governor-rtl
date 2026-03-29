@@ -414,12 +414,12 @@ button:hover { filter: brightness(1.08); }
 }
 
 .verify-card {
-  min-height: 360px;
+  min-height: 520px;
 }
 
 .verify-card canvas {
   width: 100% !important;
-  height: 240px !important;
+  height: 380px !important;
 }
 
 .scenario-status {
@@ -479,6 +479,124 @@ button:hover { filter: brightness(1.08); }
   line-height: 1.25;
 }
 
+.sim-card {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.sim-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sim-catalog {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: #c8eaf2;
+}
+
+.sim-catalog li {
+  margin: 8px 0;
+  line-height: 1.3;
+}
+
+.sim-kind {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sim-expects {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sim-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sim-empty {
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--muted);
+}
+
+.sim-result {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.sim-result.pass {
+  border-color: rgba(0, 201, 167, 0.45);
+}
+
+.sim-result.fail {
+  border-color: rgba(255, 107, 107, 0.45);
+}
+
+.sim-result-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sim-pill {
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.sim-pill.pass {
+  background: rgba(0, 201, 167, 0.16);
+  color: #8ff1df;
+}
+
+.sim-pill.fail {
+  background: rgba(255, 107, 107, 0.14);
+  color: #ffd5d5;
+}
+
+.sim-result-desc,
+.sim-result-note,
+.sim-timing {
+  font-size: 0.9rem;
+  margin: 4px 0;
+}
+
+.fail-note {
+  color: #ffb8b8;
+}
+
+.sim-result details {
+  margin-top: 6px;
+}
+
+.sim-result details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sim-result pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
 /* Performance-focused overrides to reduce UI lag on lower-end machines. */
 body::before {
   animation: none !important;
@@ -490,4 +608,14 @@ body::before {
 
 .card:hover {
   transform: none !important;
+}
+
+@media (max-width: 980px) {
+  .verify-card {
+    min-height: 430px;
+  }
+
+  .verify-card canvas {
+    height: 300px !important;
+  }
 }

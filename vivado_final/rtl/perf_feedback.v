@@ -18,9 +18,9 @@
 //   arbiter windows) and classifies the result:
 //
 //     perf_penalty = 0   No throttling this feedback window
-//     perf_penalty = 1   Light throttle  (<25% of windows throttled)
-//     perf_penalty = 2   Moderate        (25–50%)
-//     perf_penalty = 3   Heavy           (>50% of windows throttled)
+//     perf_penalty = 1   Light throttle  (1 throttled window)
+//     perf_penalty = 2   Moderate        (2 throttled windows)
+//     perf_penalty = 3   Heavy           (3+ throttled windows)
 //
 //   budget_relax is asserted for one cycle when heavy throttling is detected,
 //   signalling the arbiter to relax (raise) its budget by 1.
@@ -71,9 +71,9 @@ localparam [2:0] FEEDBACK_WINDOW = 3'd4;
 localparam [2:0] SLACK_WINDOWS   = 3'd3;
 
 // Throttle thresholds (out of FEEDBACK_WINDOW windows)
-// Light    < THRESH_MOD,  Moderate  < THRESH_HEAVY,  Heavy >= THRESH_HEAVY
-localparam [2:0] THRESH_MOD   = 3'd1;   // >=1 throttled window  = at least light
-localparam [2:0] THRESH_HEAVY = 3'd2;   // >=2 throttled windows = heavy
+// Light: 1 window, Moderate: 2 windows, Heavy: 3+ windows.
+localparam [2:0] THRESH_MOD   = 3'd2;
+localparam [2:0] THRESH_HEAVY = 3'd3;
 
 // ---------------------------------------------------------------------------
 // Internal counters
@@ -127,10 +127,10 @@ always @(posedge clk or negedge rst_n) begin
                     // Enough slack: suggest tightening budget
                     if (slack_cnt >= (SLACK_WINDOWS - 3'd1))
                         budget_tighten <= 1'b1;
-                end else if (throttle_cnt < THRESH_HEAVY) begin
+                end else if (throttle_cnt < THRESH_MOD) begin
                     perf_penalty <= 2'd1;  // light
                     slack_cnt    <= 3'd0;
-                end else if (throttle_cnt < (FEEDBACK_WINDOW >> 1)) begin
+                end else if (throttle_cnt < THRESH_HEAVY) begin
                     perf_penalty <= 2'd2;  // moderate
                     slack_cnt    <= 3'd0;
                 end else begin

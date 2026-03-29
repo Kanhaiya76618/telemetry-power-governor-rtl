@@ -27,26 +27,35 @@ module counters (
     output reg  [6:0]  cycle_count
 );
 
+    reg clear_window;
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             cycle_count     <= 7'd0;
             activity_count  <= 7'd0;
             stall_count     <= 7'd0;
             window_done     <= 1'b0;
+            clear_window    <= 1'b0;
         end else begin
-            window_done <= 1'b0;
-
-            if (cycle_count == 7'd99) begin
-                // End of window: single-cycle pulse; start next window with clean
-                // zeros (do not seed from activity_in/stall_in here). The cycle
-                // that closed the window was already counted when cycle_count went
-                // 98→99. Seeding caused stall_count to lead activity_count when
-                // TEST 2 ended with stall=1 and TEST 3 ran 30 cycles (tb_counters).
-                cycle_count    <= 7'd0;
-                activity_count <= 7'd0;
-                stall_count    <= 7'd0;
+            if (clear_window) begin
+                // Keep previous window counts valid for one cycle while
+                // window_done is observed by downstream modules, then clear.
+                clear_window   <= 1'b0;
+                window_done    <= 1'b0;
+                cycle_count    <= 7'd1;
+                activity_count <= activity_in ? 7'd1 : 7'd0;
+                stall_count    <= stall_in ? 7'd1 : 7'd0;
+            end else if (cycle_count == 7'd99) begin
+                // End-of-window pulse with counts still valid in this cycle.
                 window_done    <= 1'b1;
+                clear_window   <= 1'b1;
+                cycle_count    <= 7'd0;
+                if (activity_in)
+                    activity_count <= activity_count + 7'd1;
+                if (stall_in)
+                    stall_count <= stall_count + 7'd1;
             end else begin
+                window_done <= 1'b0;
                 cycle_count <= cycle_count + 7'd1;
                 if (activity_in)
                     activity_count <= activity_count + 7'd1;

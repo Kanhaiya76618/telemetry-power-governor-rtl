@@ -1,0 +1,2 @@
+TB_PASS: power_fsm policy transitions verified
+vivado_final/sim_iverilog/tb_power_fsm_policy.v:101: $finish called at 235000 (1ps)

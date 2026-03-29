@@ -1,0 +1,2 @@
+TB_PASS: counters windowing and pulse behavior verified
+vivado_final/sim_iverilog/tb_counters_window.v:71: $finish called at 1325000 (1ps)

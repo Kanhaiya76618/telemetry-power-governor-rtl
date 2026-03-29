@@ -1,0 +1,38 @@
+VCD info: dumpfile dump.vcd opened for output.
+=========================================
+  counters.v Testbench Starting...
+  (includes P1 window_done pulse test)
+=========================================
+
+--- Reset released. All counters should be 0 ---
+  cycle_count=1  activity_count=0  stall_count=0
+
+--- TEST 1: 50 cycles, activity=1, stall=0 ---
+  cycle_count=51  activity_count=50  stall_count=0
+  TEST 1 PASSED: activity_count = 50
+  TEST 1 PASSED: stall_count = 0
+
+--- TEST 2: next 50 cycles, activity=0, stall=1 ---
+  After full 100-cycle window:
+  cycle_count=1  activity_count=0  stall_count=1  window_done=0
+  TEST 2 PASSED: window correctly reset (cycle_count=1)
+
+--- TEST 3: 30 cycles, activity=1, stall=1 ---
+  activity_count=30  stall_count=30
+  TEST 3 PASSED: both counts = 30
+
+--- TEST 4: Mid-simulation reset ---
+  cycle_count=0  activity_count=0  stall_count=0
+  TEST 4 PASSED: all counters cleared by reset
+
+--- TEST 5 (P1): window_done is a 1-cycle pulse ---
+  window_done was HIGH for 1 cycle(s) across 101 cycles
+  TEST 5 PASSED: window_done is exactly 1 cycle (safe for power_fsm)
+
+=========================================
+  All 5 tests complete!
+  (4 original + 1 P1 pulse-width test)
+  Open EPWave to watch the counters climb!
+=========================================
+
+tb_counters.v:226: $finish called at 2415000 (1ps)

@@ -1,0 +1,2 @@
+TB_PASS: reg_interface thermal and clk_en behavior verified
+vivado_final/sim_iverilog/tb_reg_interface_thermal.v:97: $finish called at 145000 (1ps)

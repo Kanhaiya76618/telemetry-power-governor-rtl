@@ -1,0 +1,57 @@
+VCD info: dumpfile dump.vcd opened for output.
+=========================================
+  power_fsm Testbench Starting...
+  (P1 FSM + P2 thermal override)
+=========================================
+
+--- Reset Released: FSM should be in SLEEP ---
+  power_state_out = 00 ( SLEEP    )
+
+--- TEST 1: Upscale — heavy workload, 3 windows ---
+  After window 1: 01 ( LOW_POWER)
+  TEST 1 PASSED: power_state_out = 01 ( LOW_POWER)
+  After window 2: 10 ( ACTIVE   )
+  TEST 1 PASSED: power_state_out = 10 ( ACTIVE   )
+  After window 3: 11 ( TURBO    )
+  TEST 1 PASSED: power_state_out = 11 ( TURBO    )
+  After window 4 (saturate at TURBO): 11 ( TURBO    )
+  TEST 1 BONUS PASSED: TURBO held correctly (no overflow)
+
+--- TEST 2: Downscale — idle workload, 3 windows ---
+  After window 1: 10 ( ACTIVE   )
+  TEST 2 PASSED: power_state_out = 10 ( ACTIVE   )
+  After window 2: 01 ( LOW_POWER)
+  TEST 2 PASSED: power_state_out = 01 ( LOW_POWER)
+  After window 3: 00 ( SLEEP    )
+  TEST 2 PASSED: power_state_out = 00 ( SLEEP    )
+  After window 4 (saturate at SLEEP): 00 ( SLEEP    )
+  TEST 2 BONUS PASSED: SLEEP held correctly (no underflow)
+
+--- TEST 3: Stall block — high activity blocked by high stalls ---
+  State before Test 3:  SLEEP    
+  After window 1: 00 ( SLEEP    )
+  TEST 3 PASSED: stall correctly blocked upscale (still SLEEP)
+  After window 2: 00 ( SLEEP    )
+  TEST 3 PASSED: stall block sustained across 2 windows
+
+--- TEST 4 (P2): Thermal override — TURBO forced to LOW_POWER ---
+  Pre-override state: 11 ( TURBO    )
+  After thermal alarm window: 01 ( LOW_POWER)
+  TEST 4 PASSED: thermal alarm forced TURBO → LOW_POWER
+  Second alarm window: 01 ( LOW_POWER) (should stay LOW_POWER)
+  TEST 4 BONUS PASSED: thermal hold sustained
+  After cooldown window: 10 ( ACTIVE   ) (should upscale to ACTIVE)
+  TEST 4 BONUS PASSED: upscale resumed after cooldown
+
+--- TEST 5: Mid-simulation reset ---
+  State before reset: 10 ( ACTIVE   )
+  State during reset: 00 ( SLEEP    )
+  TEST 5 PASSED: reset correctly returned FSM to SLEEP
+
+=========================================
+  All power_fsm tests complete!
+  Tests: upscale, downscale, stall-block,
+         thermal-override (P2), reset
+=========================================
+
+tb_power_fsm.v:364: $finish called at 405000 (1ps)

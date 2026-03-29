@@ -57,6 +57,11 @@ const scenarioSummary = el('scenarioSummary');
 const scenarioExplain = el('scenarioExplain');
 const modeExplain = el('modeExplain');
 const tbExplainList = el('tbExplainList');
+const runSimBtn = el('runSimBtn');
+const refreshSimTestsBtn = el('refreshSimTestsBtn');
+const simStatus = el('simStatus');
+const simCatalog = el('simCatalog');
+const simResults = el('simResults');
 
 const navBtns = document.querySelectorAll('.nav-btn');
 const leftCol = document.querySelector('.left-col');
@@ -72,13 +77,24 @@ let formDirty = false;
 let lastTrendFrame = -1;
 let lastTrendPushMs = 0;
 let scenarioRunning = false;
+let simRunning = false;
 let scenarioMetaByName = {};
+let simCatalogCache = [];
 const fieldLockUntil = {};
 
 const ctrlIds = ['modeSelect', 'extBudgetSelect', 'budgetInput', 'reqAInput', 'reqBInput', 'tempAInput', 'tempBInput', 'actAToggle', 'stallAToggle', 'actBToggle', 'stallBToggle'];
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
+}
+
+function escapeHtml(input) {
+  return String(input)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function lockField(fieldId, ms = 2200) {
@@ -197,11 +213,65 @@ const trendChart = makeLineChart('trendChart', [
 ]);
 
 const verifyChart = makeLineChart('verifyChart', [
-  { label: 'Grant A', data: [], borderColor: '#4fc3f7', tension: 0.15, pointRadius: 0 },
-  { label: 'Grant B', data: [], borderColor: '#81c784', tension: 0.15, pointRadius: 0 },
-  { label: 'Budget', data: [], borderColor: '#ffd54f', tension: 0.15, pointRadius: 0 },
-  { label: 'Efficiency', data: [], borderColor: '#ef5350', tension: 0.15, pointRadius: 0 },
+  { label: 'Grant A', data: [], borderColor: '#4fc3f7', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
+  { label: 'Grant B', data: [], borderColor: '#81c784', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
+  { label: 'Budget', data: [], borderColor: '#ffd54f', tension: 0.15, pointRadius: 0, yAxisID: 'yCtl' },
+  { label: 'Efficiency', data: [], borderColor: '#ef5350', tension: 0.15, pointRadius: 0, yAxisID: 'yEff' },
 ]);
+
+if (verifyChart) {
+  verifyChart.options.interaction = {
+    mode: 'index',
+    intersect: false,
+  };
+
+  verifyChart.options.layout = {
+    padding: {
+      top: 10,
+      right: 24,
+      left: 6,
+      bottom: 4,
+    },
+  };
+
+  verifyChart.options.plugins = verifyChart.options.plugins || {};
+  verifyChart.options.plugins.legend = {
+    position: 'top',
+    labels: {
+      color: '#cfe5ee',
+      boxWidth: 26,
+      boxHeight: 10,
+      padding: 14,
+    },
+  };
+
+  verifyChart.options.scales = {
+    x: {
+      ticks: { color: '#8fb0bd', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+      grid: { color: 'rgba(255,255,255,0.06)' },
+      title: { display: true, text: 'Scenario Time (s)', color: '#8fb0bd' },
+    },
+    yCtl: {
+      type: 'linear',
+      position: 'left',
+      min: 0,
+      max: 7,
+      ticks: { color: '#8fb0bd', stepSize: 1 },
+      grid: { color: 'rgba(255,255,255,0.08)' },
+      title: { display: true, text: 'Grant / Budget', color: '#8fb0bd' },
+    },
+    yEff: {
+      type: 'linear',
+      position: 'right',
+      min: 0,
+      max: 1023,
+      ticks: { color: '#f1a0a0', stepSize: 128 },
+      grid: { drawOnChartArea: false },
+      title: { display: true, text: 'Efficiency', color: '#f1a0a0' },
+    },
+  };
+  verifyChart.update('none');
+}
 
 function setConnection(online, labelOverride = null) {
   if (connDot) {
@@ -471,14 +541,151 @@ async function loadTestbenchNotes() {
   }
 }
 
+function setSimRunUi(running) {
+  simRunning = !!running;
+  if (runSimBtn) {
+    runSimBtn.disabled = simRunning;
+    runSimBtn.textContent = simRunning ? 'Running Tests...' : 'Run All RTL Tests';
+  }
+}
+
+function renderSimCatalog(list) {
+  if (!simCatalog) return;
+  simCatalog.innerHTML = '';
+  if (!list || !list.length) {
+    const li = document.createElement('li');
+    li.textContent = 'No simulation tests defined by backend.';
+    simCatalog.appendChild(li);
+    return;
+  }
+
+  list.forEach((test) => {
+    const li = document.createElement('li');
+    const expects = Array.isArray(test.expects) ? test.expects.join(' | ') : '';
+    li.innerHTML = `<strong>${escapeHtml(test.label)}</strong> <span class="sim-kind">(${escapeHtml(test.kind)})</span><br/>${escapeHtml(test.description)}${expects ? `<br/><span class="sim-expects">Checks: ${escapeHtml(expects)}</span>` : ''}`;
+    simCatalog.appendChild(li);
+  });
+}
+
+function renderSimResults(out) {
+  if (!simResults) return;
+  simResults.innerHTML = '';
+
+  const results = (out && out.results) || [];
+  if (!results.length) {
+    simResults.innerHTML = '<div class="sim-empty">No results returned.</div>';
+    return;
+  }
+
+  results.forEach((r) => {
+    const card = document.createElement('div');
+    card.className = `sim-result ${r.passed ? 'pass' : 'fail'}`;
+
+    const expects = Array.isArray(r.expects) ? r.expects.join(' | ') : '';
+    const compileMs = r.compile && Number.isFinite(r.compile.elapsed_ms) ? r.compile.elapsed_ms : 0;
+    const runMs = r.run && Number.isFinite(r.run.elapsed_ms) ? r.run.elapsed_ms : 0;
+    const compileTail = r.compile && r.compile.log_tail ? r.compile.log_tail : '(no compile log)';
+    const runTail = r.run && r.run.log_tail ? r.run.log_tail : '(no run log)';
+
+    card.innerHTML = `
+      <div class="sim-result-head">
+        <strong>${escapeHtml(r.label || r.id)}</strong>
+        <span class="sim-pill ${r.passed ? 'pass' : 'fail'}">${r.passed ? 'PASS' : 'FAIL'}</span>
+      </div>
+      <div class="sim-result-desc">${escapeHtml(r.description || '')}</div>
+      ${expects ? `<div class="sim-expects">Expected: ${escapeHtml(expects)}</div>` : ''}
+      <div class="sim-timing">compile ${compileMs} ms${r.kind === 'simulation' ? ` | run ${runMs} ms` : ''}</div>
+      ${r.passed ? '<div class="sim-result-note">Behavior matched expected checks.</div>' : `<div class="sim-result-note fail-note">${escapeHtml(r.reason || 'failure')}</div>`}
+      <details>
+        <summary>Compiler log tail</summary>
+        <pre>${escapeHtml(compileTail)}</pre>
+      </details>
+      ${r.kind === 'simulation' ? `<details><summary>Simulation log tail</summary><pre>${escapeHtml(runTail)}</pre></details>` : ''}
+    `;
+
+    simResults.appendChild(card);
+  });
+}
+
+async function loadSimCatalog() {
+  if (simStatus) simStatus.textContent = 'Loading simulation test catalog...';
+  try {
+    const res = await fetch('/api/sim/tests');
+    const out = await res.json();
+    if (!res.ok) throw new Error(out.detail || `HTTP ${res.status}`);
+
+    simCatalogCache = out.tests || [];
+    renderSimCatalog(simCatalogCache);
+
+    if (simStatus) {
+      if (out.tooling_ready) {
+        const tool = out.tooling && out.tooling.iverilog ? out.tooling.iverilog : 'iverilog';
+        simStatus.textContent = `Simulation tooling ready (${tool}). ${simCatalogCache.length} tests available.`;
+      } else {
+        simStatus.textContent = 'Icarus tooling not detected by backend. Install iverilog/vvp and restart backend.';
+      }
+    }
+  } catch (e) {
+    renderSimCatalog([]);
+    if (simStatus) simStatus.textContent = `Simulation catalog load failed: ${e}`;
+  }
+}
+
+async function runSimTests() {
+  if (simRunning) return;
+  setSimRunUi(true);
+  if (simStatus) simStatus.textContent = 'Running RTL simulations with Icarus Verilog...';
+
+  try {
+    const res = await fetch('/api/sim/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeout_s: 25.0 }),
+    });
+    const out = await res.json();
+    if (!res.ok) throw new Error(out.detail || `HTTP ${res.status}`);
+
+    renderSimResults(out);
+    if (simStatus) {
+      simStatus.textContent = `Simulation run complete: ${out.passed}/${out.total} passed, ${out.failed} failed.`;
+    }
+    if (ack) {
+      ack.textContent = JSON.stringify(
+        {
+          sim_total: out.total,
+          sim_passed: out.passed,
+          sim_failed: out.failed,
+          elapsed_ms: out.elapsed_ms,
+          tooling: out.tooling,
+        },
+        null,
+        2,
+      );
+    }
+  } catch (e) {
+    if (simStatus) simStatus.textContent = `Simulation run failed: ${e}`;
+  } finally {
+    setSimRunUi(false);
+  }
+}
+
 function renderScenarioTimeline(result) {
   if (!verifyChart) return;
   const timeline = result.timeline || [];
+  const effValues = timeline.map((p) => p.efficiency ?? 0);
+  const effPeak = effValues.length ? Math.max(...effValues, 64) : 64;
+  const effAxisMax = Math.max(128, Math.ceil(effPeak / 64) * 64);
+
+  if (verifyChart.options.scales && verifyChart.options.scales.yEff) {
+    verifyChart.options.scales.yEff.max = effAxisMax;
+    verifyChart.options.scales.yEff.ticks.stepSize = effAxisMax <= 256 ? 32 : (effAxisMax <= 512 ? 64 : 128);
+  }
+
   verifyChart.data.labels = timeline.map((p) => (p.t_ms / 1000).toFixed(1));
   verifyChart.data.datasets[0].data = timeline.map((p) => p.grant_a ?? 0);
   verifyChart.data.datasets[1].data = timeline.map((p) => p.grant_b ?? 0);
   verifyChart.data.datasets[2].data = timeline.map((p) => p.current_budget ?? 0);
-  verifyChart.data.datasets[3].data = timeline.map((p) => p.efficiency ?? 0);
+  verifyChart.data.datasets[3].data = effValues;
   verifyChart.update('none');
 
   if (scenarioSummary) {
@@ -742,6 +949,18 @@ if (stopScenarioBtn) {
   });
 }
 
+if (runSimBtn) {
+  runSimBtn.addEventListener('click', async () => {
+    await runSimTests();
+  });
+}
+
+if (refreshSimTestsBtn) {
+  refreshSimTestsBtn.addEventListener('click', async () => {
+    await loadSimCatalog();
+  });
+}
+
 setInterval(() => {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     pollFallback();
@@ -753,4 +972,6 @@ connectWs();
 pollFallback();
 loadScenarios();
 loadTestbenchNotes();
+loadSimCatalog();
 setScenarioRunUi(false);
+setSimRunUi(false);

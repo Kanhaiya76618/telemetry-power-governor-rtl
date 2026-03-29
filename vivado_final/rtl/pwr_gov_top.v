@@ -5,6 +5,8 @@
  * Integrates: 2x Cores (FSMs, Counters, Regs), Arbiter, Feedback, and Logger.
  */
 
+`timescale 1ns / 1ps
+
 module pwr_gov_top (
     input  wire        clk,
     input  wire        rst_n,
@@ -134,8 +136,8 @@ module pwr_gov_top (
     perf_feedback FEEDBACK (
         .clk(clk), .rst_n(rst_n),
         .window_done(window_done_a),
-        .req_a(fsm_req_a), .grant_a(grant_a),
-        .req_b(fsm_req_b), .grant_b(grant_b),
+        .req_a(arb_req_a), .grant_a(grant_a),
+        .req_b(arb_req_b), .grant_b(grant_b),
         .budget_headroom(budget_headroom),
         .perf_penalty(perf_penalty),
         .budget_relax(budget_relax),

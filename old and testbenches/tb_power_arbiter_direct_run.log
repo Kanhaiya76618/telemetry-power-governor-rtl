@@ -1,0 +1,16 @@
+VCD info: dumpfile dump.vcd opened for output.
+=========================================
+  Direct arbiter integration test starting
+=========================================
+
+--- TEST 1: Both request TURBO; arbiter should throttle B ---
+  req_a=11 req_b=11  grant_a=11 grant_b=01  applied_a=10 applied_b=10
+  TEST 1 PASSED: Arbiter throttled B as expected
+
+--- TEST 2: Both request ACTIVE -> budget allows both ACTIVE ---
+  req_a=10 req_b=10  grant_a=10 grant_b=10  applied_a=01 applied_b=01
+  TEST 2 PASSED: Both granted ACTIVE
+
+Direct arbiter tests complete.
+
+tb_power_arbiter_direct.v:213: $finish called at 175000 (1ps)

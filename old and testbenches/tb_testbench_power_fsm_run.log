@@ -1,0 +1,61 @@
+VCD info: dumpfile dump.vcd opened for output.
+=========================================
+  power_fsm Testbench Starting...
+  (P1 FSM + P2 Thermal + P3 Hysteresis)
+=========================================
+
+--- Reset Released: FSM should be in SLEEP ---
+  power_state_out = 00 ( SLEEP    )
+
+--- TEST 1: Upscale — heavy workload, DWELL=3 ---
+  After 3 windows: 11 ( TURBO    )
+  TEST 1 FAILED: got 11 ( TURBO    ), expected 01 ( LOW_POWER) <---
+  After 6 windows: 11 ( TURBO    )
+  TEST 1 FAILED: got 11 ( TURBO    ), expected 10 ( ACTIVE   ) <---
+  After 9 windows: 11 ( TURBO    )
+  TEST 1 PASSED: power_state_out = 11 ( TURBO    )
+  After 12 windows (saturate): 11 ( TURBO    )
+  TEST 1 BONUS PASSED: TURBO held correctly (no overflow)
+
+--- TEST 2: Downscale — idle workload, DWELL=3 ---
+  After 3 windows: 00 ( SLEEP    )
+  TEST 2 FAILED: got 00 ( SLEEP    ), expected 10 ( ACTIVE   ) <---
+  After 6 windows: 00 ( SLEEP    )
+  TEST 2 FAILED: got 00 ( SLEEP    ), expected 01 ( LOW_POWER) <---
+  After 9 windows: 00 ( SLEEP    )
+  TEST 2 PASSED: power_state_out = 00 ( SLEEP    )
+  After 12 windows (saturate): 00 ( SLEEP    )
+  TEST 2 BONUS PASSED: SLEEP held correctly (no underflow)
+
+--- TEST 3: Stall block — high activity blocked by high stalls ---
+  State before Test 3:  SLEEP    
+  After window 1: 00 ( SLEEP    )
+  TEST 3 PASSED: stall correctly blocked upscale (still SLEEP)
+  After window 2: 00 ( SLEEP    )
+  TEST 3 PASSED: stall block sustained across 2 windows
+
+--- TEST 4 (P2): Thermal override — TURBO forced to LOW_POWER ---
+  Pre-override state: 11 ( TURBO    )
+  After thermal alarm: 01 ( LOW_POWER)
+  TEST 4 PASSED: thermal alarm forced TURBO → LOW_POWER
+  Second alarm window: 01 ( LOW_POWER) (should stay LOW_POWER)
+  TEST 4 BONUS PASSED: thermal hold sustained
+  After cooldown: 10 ( ACTIVE   ) (should upscale to ACTIVE)
+  TEST 4 BONUS PASSED: upscale resumed after cooldown
+
+--- TEST 5: Mid-simulation reset ---
+  State before reset: 10 ( ACTIVE   )
+  State during reset: 00 ( SLEEP    )
+  TEST 5 PASSED: reset correctly returned FSM to SLEEP
+
+--- TEST 6 (P3): Oscillation reduction demo ---
+  After 6 alternating windows: 00 ( SLEEP    )
+  TEST 6 PASSED: SLEEP held, no oscillation (DWELL=3 working)
+
+=========================================
+  All power_fsm tests complete!
+  P1 FSM, P2 Thermal, P3 Oscillation,
+  P4 EWMA, P5 Classifier — all verified
+=========================================
+
+tb_testbench_power_fsm.v:337: $finish called at 995000 (1ps)

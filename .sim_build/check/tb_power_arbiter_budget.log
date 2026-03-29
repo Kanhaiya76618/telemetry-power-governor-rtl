@@ -1,0 +1,2 @@
+TB_PASS: power_arbiter budget and thermal priority verified
+vivado_final/sim_iverilog/tb_power_arbiter_budget.v:84: $finish called at 4000 (1ps)

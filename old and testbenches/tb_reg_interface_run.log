@@ -1,0 +1,59 @@
+VCD info: dumpfile dump.vcd opened for output.
+=========================================
+  reg_interface Testbench Starting...
+  (includes P2 thermal alarm tests)
+=========================================
+
+--- Reset Released ---
+  power_state_out=00  clk_en=0  temp_out=25  thermal_alarm=0
+
+--- TEST 1: SLEEP state ---
+  power_state_out=00  clk_en=0  temp_out=20
+  TEST 1 PASSED: clk_en = 0 (expected 0)
+
+--- TEST 2: LOW_POWER, no activity ---
+  power_state_out=01  clk_en=0  activity_out=0
+  TEST 2 PASSED: clk_en = 0 (expected 0)
+
+--- TEST 3: LOW_POWER, with activity ---
+  power_state_out=01  clk_en=1  activity_out=1
+  TEST 3 PASSED: clk_en = 1 (expected 1)
+
+--- TEST 4: ACTIVE state ---
+  power_state_out=10  clk_en=1  stall_out=1
+  TEST 4 PASSED: clk_en = 1 (expected 1)
+
+--- TEST 5: TURBO state ---
+  power_state_out=11  clk_en=1  temp_out=80
+  TEST 5 PASSED: clk_en = 1 (expected 1)
+
+--- TEST 6: TURBO at high temp (95 C) — register accuracy ---
+  power_state_out=11  clk_en=1  temp_out=95
+  TEST 6 PASSED: temp_out correctly shows 95
+
+--- TEST 7: Mid-simulation reset ---
+  During reset: power_state_out=00  clk_en=0
+  TEST 7 PASSED: clk_en = 0 (expected 0)
+
+--- TEST 8 (P2): Thermal alarm fires at temp=90, thresh=85 ---
+  temp_out=90  thermal_thresh_out=85  thermal_alarm=1
+  TEST 8 PASSED: thermal_alarm = 1 (expected 1)
+  clk_en=1 (should still be 1 — throttling is power_fsm's job)
+
+--- TEST 9 (P2): Thermal alarm clears at temp=70, thresh=85 ---
+  temp_out=70  thermal_thresh_out=85  thermal_alarm=0
+  TEST 9 PASSED: thermal_alarm = 0 (expected 0)
+
+--- TEST 10 (P2): Reset clears thermal alarm ---
+  Before reset: temp_out=75  thermal_alarm=1 (should be 1)
+  After reset:  temp_out=0  thermal_alarm=0 (should be 0)
+  TEST 10 PASSED: reset correctly cleared thermal_alarm
+Test case: Reset=0 & Stall=1 completed
+
+=========================================
+  All 11 tests complete!
+  (7 original + 3 P2 thermal alarm tests)
+  Open EPWave to see the waveforms.
+=========================================
+
+tb_reg_interface.v:337: $finish called at 395000 (1ps)

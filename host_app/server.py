@@ -1,6 +1,8 @@
 import asyncio
 import json
 import os
+import shutil
+import subprocess
 import threading
 import time
 from dataclasses import dataclass, asdict
@@ -65,6 +67,11 @@ class ControlPayload(BaseModel):
 class ScenarioRunPayload(BaseModel):
     name: str
     sample_ms: int = Field(default=200, ge=80, le=1000)
+
+
+class SimRunPayload(BaseModel):
+    names: Optional[List[str]] = None
+    timeout_s: float = Field(default=20.0, ge=3.0, le=120.0)
 
 
 class SerialBridge:
@@ -547,6 +554,84 @@ SCENARIOS: Dict[str, Dict[str, Any]] = {
     },
 }
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+RTL_DIR = REPO_ROOT / "vivado_final" / "rtl"
+SIM_DIR = REPO_ROOT / "vivado_final" / "sim_iverilog"
+SIM_BUILD_DIR = REPO_ROOT / ".sim_build"
+
+SIM_TESTS: List[Dict[str, Any]] = [
+    {
+        "id": "tb_counters_window",
+        "label": "Counters Window Handshake",
+        "kind": "simulation",
+        "tb_file": "tb_counters_window.v",
+        "rtl_sources": ["counters.v"],
+        "description": "Verifies 100-cycle window counting and one-cycle window_done pulse behavior.",
+        "expects": [
+            "window_done pulses exactly once per window",
+            "activity/stall counters increment under stimulus",
+        ],
+    },
+    {
+        "id": "tb_power_fsm_policy",
+        "label": "Power FSM Policy",
+        "kind": "simulation",
+        "tb_file": "tb_power_fsm_policy.v",
+        "rtl_sources": ["power_fsm.v"],
+        "description": "Checks upscale/downscale sequence and thermal override transitions.",
+        "expects": [
+            "SLEEP->LOW_POWER->ACTIVE->TURBO under high activity",
+            "thermal alarm forces LOW_POWER",
+        ],
+    },
+    {
+        "id": "tb_reg_interface_thermal",
+        "label": "Reg Interface Thermal",
+        "kind": "simulation",
+        "tb_file": "tb_reg_interface_thermal.v",
+        "rtl_sources": ["reg_interface.v"],
+        "description": "Validates clk_en behavior by state and thermal alarm assertion/clear.",
+        "expects": [
+            "LOW_POWER gates clock by activity",
+            "thermal alarm tracks temp >= threshold",
+        ],
+    },
+    {
+        "id": "tb_power_arbiter_budget",
+        "label": "Power Arbiter Budget",
+        "kind": "simulation",
+        "tb_file": "tb_power_arbiter_budget.v",
+        "rtl_sources": ["power_arbiter.v"],
+        "description": "Checks no-conflict grants, contention throttling, and thermal priority tie-break.",
+        "expects": [
+            "requests pass through when budget allows",
+            "cooler subsystem wins on contention",
+        ],
+    },
+    {
+        "id": "elab_pwr_gov_top",
+        "label": "Top-Level Wiring Elaboration",
+        "kind": "elaboration",
+        "top_module": "pwr_gov_top",
+        "description": "Compiles the governor top hierarchy to catch missing or mismatched interconnects.",
+        "expects": [
+            "all submodule ports resolve",
+            "no width or port-mismatch compile errors",
+        ],
+    },
+    {
+        "id": "elab_pwr_gov_axi_lite",
+        "label": "AXI Wrapper Wiring Elaboration",
+        "kind": "elaboration",
+        "top_module": "pwr_gov_axi_lite",
+        "description": "Compiles AXI-lite wrapper plus core hierarchy to validate integration wiring.",
+        "expects": [
+            "AXI wrapper and governor interfaces elaborate cleanly",
+            "no unresolved module references",
+        ],
+    },
+]
+
 TESTBENCH_NOTES: List[Dict[str, str]] = [
     {
         "name": "tb_counters.v",
@@ -584,6 +669,209 @@ TESTBENCH_NOTES: List[Dict[str, str]] = [
         "summary": "Top-level multi-module simulation with workload and feedback interaction.",
     },
 ]
+
+
+def _trim_log(text: str, max_lines: int = 18) -> str:
+    lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return "(no log output)"
+    if len(lines) <= max_lines:
+        return "\n".join(lines)
+    return "\n".join(lines[-max_lines:])
+
+
+def _resolve_iverilog_tools() -> Dict[str, str]:
+    iv_candidates = [
+        shutil.which("iverilog"),
+        r"C:\\iverilog\\bin\\iverilog.exe",
+        r"C:\\Program Files\\Icarus Verilog\\bin\\iverilog.exe",
+        r"C:\\Program Files (x86)\\Icarus Verilog\\bin\\iverilog.exe",
+    ]
+    vvp_candidates = [
+        shutil.which("vvp"),
+        r"C:\\iverilog\\bin\\vvp.exe",
+        r"C:\\Program Files\\Icarus Verilog\\bin\\vvp.exe",
+        r"C:\\Program Files (x86)\\Icarus Verilog\\bin\\vvp.exe",
+    ]
+
+    def pick(paths: List[Optional[str]]) -> Optional[str]:
+        for p in paths:
+            if not p:
+                continue
+            if Path(p).exists():
+                return str(Path(p))
+        return None
+
+    iverilog_bin = pick(iv_candidates)
+    vvp_bin = pick(vvp_candidates)
+
+    if not iverilog_bin or not vvp_bin:
+        raise RuntimeError(
+            "Icarus Verilog not found. Install iverilog and vvp, then restart host_app backend."
+        )
+
+    return {"iverilog": iverilog_bin, "vvp": vvp_bin}
+
+
+def _run_cmd(cmd: List[str], timeout_s: float) -> Dict[str, Any]:
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            check=False,
+        )
+        log = f"{proc.stdout}\n{proc.stderr}".strip()
+        return {
+            "ok": proc.returncode == 0,
+            "returncode": proc.returncode,
+            "log": log,
+            "timeout": False,
+        }
+    except subprocess.TimeoutExpired as exc:
+        combined = f"{exc.stdout or ''}\n{exc.stderr or ''}".strip()
+        return {
+            "ok": False,
+            "returncode": -1,
+            "log": combined,
+            "timeout": True,
+        }
+
+
+def _run_one_sim_test(spec: Dict[str, Any], tools: Dict[str, str], timeout_s: float) -> Dict[str, Any]:
+    SIM_BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    out_file = SIM_BUILD_DIR / f"{spec['id']}.vvp"
+    compile_cmd = [tools["iverilog"], "-g2012", "-o", str(out_file)]
+
+    if spec["kind"] == "simulation":
+        tb_path = SIM_DIR / spec["tb_file"]
+        if not tb_path.exists():
+            return {
+                "id": spec["id"],
+                "label": spec["label"],
+                "kind": spec["kind"],
+                "description": spec["description"],
+                "expects": spec.get("expects", []),
+                "passed": False,
+                "phase": "setup",
+                "reason": f"Missing testbench file: {tb_path}",
+                "compile": {"ok": False, "returncode": -1, "log": "", "timeout": False},
+                "run": {"ok": False, "returncode": -1, "log": "", "timeout": False},
+                "summary": f"Missing testbench file: {tb_path}",
+            }
+
+        compile_cmd.append(str(tb_path))
+        for src in spec.get("rtl_sources", []):
+            compile_cmd.append(str(RTL_DIR / src))
+    else:
+        top_module = spec["top_module"]
+        compile_cmd.extend(["-s", top_module])
+        compile_cmd.extend([str(p) for p in sorted(RTL_DIR.glob("*.v"))])
+
+    t0 = time.time()
+    compile_res = _run_cmd(compile_cmd, timeout_s)
+    elapsed_compile_ms = int((time.time() - t0) * 1000)
+
+    run_res = {"ok": True, "returncode": 0, "log": "", "timeout": False}
+    elapsed_run_ms = 0
+    reason = ""
+
+    if not compile_res["ok"]:
+        reason = "compile failed"
+    elif spec["kind"] == "simulation":
+        t1 = time.time()
+        run_res = _run_cmd([tools["vvp"], str(out_file)], timeout_s)
+        elapsed_run_ms = int((time.time() - t1) * 1000)
+
+        run_log = run_res.get("log", "")
+        has_fail_marker = ("TB_FAIL" in run_log) or ("FAILED" in run_log)
+        has_pass_marker = ("TB_PASS" in run_log) or ("PASSED" in run_log)
+
+        if not run_res["ok"]:
+            reason = "simulation runtime failed"
+        elif has_fail_marker:
+            reason = "testbench reported TB_FAIL/FAILED"
+        elif not has_pass_marker:
+            reason = "no TB_PASS marker found"
+
+    passed = not reason
+
+    merged_log = "\n\n".join(
+        part for part in [compile_res.get("log", ""), run_res.get("log", "")] if part
+    )
+    summary = (
+        "PASS"
+        if passed
+        else f"FAIL: {reason}.\n{_trim_log(merged_log)}"
+    )
+
+    return {
+        "id": spec["id"],
+        "label": spec["label"],
+        "kind": spec["kind"],
+        "description": spec["description"],
+        "expects": spec.get("expects", []),
+        "passed": passed,
+        "phase": "run" if spec["kind"] == "simulation" else "compile",
+        "reason": reason,
+        "compile": {
+            **compile_res,
+            "elapsed_ms": elapsed_compile_ms,
+            "log_tail": _trim_log(compile_res.get("log", "")),
+        },
+        "run": {
+            **run_res,
+            "elapsed_ms": elapsed_run_ms,
+            "log_tail": _trim_log(run_res.get("log", "")),
+        },
+        "summary": summary,
+    }
+
+
+def _sim_test_catalog() -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": t["id"],
+            "label": t["label"],
+            "kind": t["kind"],
+            "description": t["description"],
+            "expects": t.get("expects", []),
+        }
+        for t in SIM_TESTS
+    ]
+
+
+def run_sim_tests(names: Optional[List[str]], timeout_s: float) -> Dict[str, Any]:
+    available = {t["id"]: t for t in SIM_TESTS}
+    selected_ids = names if names else [t["id"] for t in SIM_TESTS]
+
+    unknown = [n for n in selected_ids if n not in available]
+    if unknown:
+        raise HTTPException(status_code=404, detail=f"Unknown sim test id(s): {unknown}")
+
+    tools = _resolve_iverilog_tools()
+    started = time.time()
+    results = []
+
+    for test_id in selected_ids:
+        spec = available[test_id]
+        results.append(_run_one_sim_test(spec, tools, timeout_s))
+
+    passed = sum(1 for r in results if r["passed"])
+    failed = len(results) - passed
+
+    return {
+        "ok": failed == 0,
+        "started_ts": started,
+        "elapsed_ms": int((time.time() - started) * 1000),
+        "tooling": tools,
+        "total": len(results),
+        "passed": passed,
+        "failed": failed,
+        "results": results,
+    }
 
 scenario_stop_event = threading.Event()
 scenario_run_lock = threading.Lock()
@@ -755,6 +1043,30 @@ def get_testbenches() -> Dict[str, Any]:
     return {
         "testbenches": TESTBENCH_NOTES,
     }
+
+
+@app.get("/api/sim/tests")
+def get_sim_tests() -> Dict[str, Any]:
+    tool_ok = True
+    tooling: Dict[str, str] = {}
+    try:
+        tooling = _resolve_iverilog_tools()
+    except RuntimeError:
+        tool_ok = False
+
+    return {
+        "tooling_ready": tool_ok,
+        "tooling": tooling,
+        "tests": _sim_test_catalog(),
+    }
+
+
+@app.post("/api/sim/run")
+def post_run_sim_tests(payload: SimRunPayload) -> Dict[str, Any]:
+    try:
+        return run_sim_tests(payload.names, payload.timeout_s)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @app.post("/api/scenarios/run")
